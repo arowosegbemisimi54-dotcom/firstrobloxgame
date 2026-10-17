@@ -19,13 +19,15 @@ Keep PowerShell open during sync. Edit synced scripts in the repository, not ins
 ## Included
 
 - Side-by-side, staggered opening choices on black, one second after client loading.
-- Client-only desert set: one camper, extended awning, tent, table, cacti, mesas, and smoke. Its distant position keeps it separate from the Studio map.
-- Sunset lighting, slow camera orbit, cinematic bars, warm text, and a shaded menu backdrop. Rendering uses ordinary parts and no external model assets.
+- Client-only desert set: one camper, extended awning, tent, table, rounded cacti, continuous triangulated sandstone ridges, sand drifts, and smoke. Its distant position keeps it separate from the Studio map.
+- A weathered highway, abandoned LAST STOP gas station with boarded windows and old pumps, roadside signs, and sagging utility lines.
+- Slow tumbleweeds enter at randomized 2–4 second intervals (normal effects), using a reusable pool of four. Low effects allows only one active weed, so appearances may be farther apart; reduced motion freezes rolling. Updates pause on the black mode-selection screen.
+- Sunset lighting, slow camera orbit, cinematic bars, typewriter lettering, and mottled sand-colored menu buttons without list numbers. Rendering uses ordinary parts and no external model assets.
 - Play: Solo, Duo, or Squad (up to four); roster and leader-controlled capacity.
 - Invite: same-server party invitations with accept/decline, expiry, capacity checks, and leader transfer. Roblox friend invitations use the platform prompt when available; joining via a friend invitation does not automatically put someone in a party.
 - Settings: menu sound, reduced camera/profile motion, and low effects. These settings last for the current session.
-- Options: controls and return to mode selection.
-- Animated circular Roblox avatar portrait and the requested credits.
+- A direct **Back** button returns to the black Story Mode / Online screen. Options also includes a return control.
+- Animated circular Roblox avatar portrait; **Be Inspired** is directly underneath **Developed by MHIDE**.
 - Mouse, touch, and selectable gamepad buttons; adaptive portrait layout.
 
 ## Deliberately unfinished
@@ -37,7 +39,8 @@ When actual destinations exist, set `OnlinePlaceId` and `StoryPlaceId` in `src/s
 ## Files
 
 - `src/client/Main.client.luau`: opening, camera, UI, input, and menu interactions.
-- `src/client/DesertScene.luau`: procedural menu scenery and temporary lighting.
+- `src/client/DesertScene.luau`: camper, vegetation, and temporary lighting.
+- `src/client/DesertDetails.luau`: triangulated mountains, road, gas station, and pooled tumbleweed animation.
 - `src/server/PartyService.server.luau`: authoritative party management and destination travel.
 - `src/shared/Config.luau`: timing, sound, and future destination IDs.
 - `src/shared/PartyRules.luau`: invitation and capacity rules.
@@ -53,7 +56,7 @@ rojo build default.project.json -o /tmp/shirts-and-skins.rbxlx
 python3 tests/run.py /path/to/luau
 ```
 
-The party tests run the actual server source with service doubles. They cover capacity, leadership, invitations, expiry, disconnects, and destination gating; they do not replace Roblox engine testing. Compile scripts using `luau-compile` if installed. Plain `luau-analyze` needs Roblox type definitions to understand engine globals.
+The party tests run the actual server source with service doubles. The scenery tests run the detail module with lightweight geometry doubles and check a two-minute spawn simulation, object budgets, reduced-motion behavior, hidden-screen pauses, and cleanup. These do not validate rendered appearance. They cover capacity, leadership, invitations, expiry, disconnects, and destination gating; they do not replace Roblox engine testing. Compile scripts using `luau-compile` if installed. Plain `luau-analyze` needs Roblox type definitions to understand engine globals.
 
 Required Studio acceptance checks:
 
@@ -61,5 +64,7 @@ Required Studio acceptance checks:
 - Exercise every menu button; confirm unavailable features show explanations rather than errors.
 - Test desktop, portrait/landscape device emulation, and gamepad navigation. Check the Output window for errors.
 - Use Studio's multi-client server test with 2–4 players. Set Duo/Squad, invite, accept, decline, leave, disconnect the leader, and try joining a full party.
-- Toggle sound, reduced motion, and low effects. Return to mode selection and re-enter Story Mode.
+- Toggle sound, reduced motion, and low effects. Watch tumbleweeds for at least 30 seconds and verify sparse, slow motion.
+- Use **Back** and re-enter Story Mode repeatedly: the opening must be black, each intro must last five seconds, and scenery must not duplicate.
+- Check the station and mountain silhouettes during the orbit; verify the stacked credits and unnumbered sandy buttons at desktop and mobile sizes.
 - Check performance on an actual lower-powered device. Rendering quality and sound behavior have not been verified in this cloud workspace, which cannot run Roblox Studio.

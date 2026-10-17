@@ -1,4 +1,5 @@
 local Lighting = game:GetService("Lighting")
+local Details = require(script.Parent.DesertDetails)
 local Scene = {}
 
 function Scene.create()
@@ -19,25 +20,28 @@ function Scene.create()
 	end
 	part("Desert", Vector3.new(1800, 4, 1800), Vector3.new(0, -3, 0), sand, Enum.Material.Sand)
 	local random = Random.new(817)
-	for i = 1, 24 do
-		local angle = i * math.pi * 2 / 24
-		local radius = random:NextNumber(230, 390)
-		local mesa = part("Distant mesa", Vector3.new(random:NextNumber(55, 110), random:NextNumber(25, 55), random:NextNumber(50, 100)), Vector3.new(math.cos(angle)*radius, 4, math.sin(angle)*radius), Color3.fromRGB(137, 86, 60), Enum.Material.Sandstone)
-		mesa.Orientation = Vector3.new(0, random:NextNumber(0, 180), random:NextNumber(-9, 9))
-	end
+	local details = Details.build(part, model, origin, random)
 	for i = 1, 22 do
 		local x, z = random:NextNumber(-150, 150), random:NextNumber(-150, 150)
 		if Vector2.new(x, z).Magnitude > 30 then
 			local height = random:NextNumber(5, 10)
 			local green = Color3.fromRGB(77, 93, 62)
-			part("Cactus trunk", Vector3.new(1.4, height, 1.4), Vector3.new(x, height/2-1, z), green)
-			part("Cactus arm", Vector3.new(3.5, 1.1, 1.1), Vector3.new(x+1, height*.5, z), green)
-			part("Cactus tip", Vector3.new(1.1, 2.8, 1.1), Vector3.new(x+2.2, height*.5+1, z), green)
+			local trunk = part("Rounded saguaro trunk", Vector3.new(height,1.4,1.4), Vector3.new(x,height/2-1,z), green, Enum.Material.SmoothPlastic, CFrame.Angles(0,0,math.pi/2))
+			trunk.Shape=Enum.PartType.Cylinder
+			local crown=part("Saguaro crown",Vector3.new(1.4,1.4,1.4),Vector3.new(x,height-1,z),green)
+			crown.Shape=Enum.PartType.Ball
+			local arm=part("Saguaro arm",Vector3.new(3.5,1.1,1.1),Vector3.new(x+1,height*.5,z),green)
+			arm.Shape=Enum.PartType.Cylinder
+			local tip=part("Saguaro upright arm",Vector3.new(2.8,1.1,1.1),Vector3.new(x+2.2,height*.5+1,z),green,Enum.Material.SmoothPlastic,CFrame.Angles(0,0,math.pi/2))
+			tip.Shape=Enum.PartType.Cylinder
+			local cap=part("Saguaro arm crown",Vector3.new(1.1,1.1,1.1),Vector3.new(x+2.2,height*.5+2.4,z),green)
+			cap.Shape=Enum.PartType.Ball
 		end
 	end
 	for _ = 1, 32 do
 		local p = Vector3.new(random:NextNumber(-100,100), -.2, random:NextNumber(-100,100))
 		local stone = part("Desert stone", Vector3.new(2,1,1.4)*random:NextNumber(.4,1.6), p, Color3.fromRGB(123,100,78), Enum.Material.Rock)
+		stone.Shape = Enum.PartType.Ball
 		stone.Orientation = Vector3.new(0,random:NextNumber(0,180),12)
 	end
 	-- A single original camper, with an extended side awning and pitched canvas tent.
@@ -87,9 +91,10 @@ function Scene.create()
 	grade.Parent = Lighting
 	return {
 		focus = origin + Vector3.new(2,5,0),
-		setLowEffects = function(enabled) smoke.Enabled = not enabled; grade.Enabled = not enabled end,
+		update = details.update,
+		setLowEffects = function(enabled) smoke.Enabled = not enabled; grade.Enabled = not enabled; details.setLowEffects(enabled) end,
 		destroy = function()
-			model:Destroy(); grade:Destroy()
+			details.destroy(); model:Destroy(); grade:Destroy()
 			for key,value in previous do Lighting[key] = value end
 		end,
 	}

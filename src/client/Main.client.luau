@@ -32,14 +32,14 @@ local function tween(instance, duration, properties)
 	return animation
 end
 local function text(parent, content, position, size, fontSize, color)
-	return make("TextLabel", {Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=color or warm,TextSize=fontSize,Font=Enum.Font.GothamMedium,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true},parent)
+	return make("TextLabel", {Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=color or warm,TextSize=fontSize,Font=Enum.Font.SpecialElite,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true},parent)
 end
 local sound = make("Sound",{SoundId=Config.ClickSound,Volume=.35},gui)
 local soundEnabled, lowEffects, reducedMotion = true, false, false
 local profilePulse
 local function click() if soundEnabled then sound:Play() end end
 local function button(parent, content, position, size, callback)
-	local b = make("TextButton",{Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=warm,TextSize=20,Font=Enum.Font.GothamMedium,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Selectable=true},parent)
+	local b = make("TextButton",{Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=warm,TextSize=20,Font=Enum.Font.SpecialElite,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Selectable=true},parent)
 	local function focus() tween(b,.15,{TextColor3=accent}) end
 	local function blur() tween(b,.15,{TextColor3=warm}) end
 	b.MouseEnter:Connect(focus); b.SelectionGained:Connect(focus)
@@ -66,12 +66,15 @@ local camera = workspace.CurrentCamera
 while not camera do workspace:GetPropertyChangedSignal("CurrentCamera"):Wait(); camera = workspace.CurrentCamera end
 local originalCamera = {kind=camera.CameraType, cframe=camera.CFrame, fov=camera.FieldOfView}
 local scene, angle, state = nil, 0, "opening"
+local shade
+local bars = {}
 local party = {leader=player.UserId,capacity=1,members={{id=player.UserId,name=player.DisplayName}}}
 local renderConnection = RunService.RenderStepped:Connect(function(dt)
 	local current = workspace.CurrentCamera
 	if not current then return end
 	current.CameraType = Enum.CameraType.Scriptable
-	if scene then
+	if scene and state ~= "opening" then
+		scene.update(dt, true, not reducedMotion)
 		if not reducedMotion then angle -= math.min(dt,.1) * (state == "cinematic" and .055 or .012) end
 		local focus = scene.focus
 		local position = focus + Vector3.new(math.cos(angle)*106,37,math.sin(angle)*106)
@@ -89,11 +92,11 @@ local function resize()
 	local size = root.AbsoluteSize
 	scale.Scale = math.min(size.X/1080,size.Y/660,1.4)
 end
-root:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize); resize()
+resize()
 local header = text(menu,"MHIDE  /  AN ORIGINAL EXPERIENCE",UDim2.fromOffset(24,12),UDim2.fromOffset(660,24),12,muted)
-header.Font = Enum.Font.GothamBold
+header.Font = Enum.Font.SpecialElite
 local titleLabel = text(menu,Config.Title,UDim2.fromOffset(24,49),UDim2.fromOffset(730,65),52,warm)
-titleLabel.Font = Enum.Font.Oswald
+titleLabel.Font = Enum.Font.SpecialElite
 text(menu,"EVERY CHOICE LEAVES A MARK.",UDim2.fromOffset(27,119),UDim2.fromOffset(550,30),13,accent)
 make("Frame",{Position=UDim2.fromOffset(26,168),Size=UDim2.fromOffset(46,2),BorderSizePixel=0,BackgroundColor3=accent},menu)
 local panel = make("Frame",{Position=UDim2.fromOffset(420,184),Size=UDim2.fromOffset(550,340),BackgroundColor3=Color3.fromRGB(23,23,21),BackgroundTransparency=.13,BorderSizePixel=0,Visible=false,Active=true,ZIndex=4},menu)
@@ -155,7 +158,7 @@ local function showSettings()
 	button(panelBody,"Menu sound: "..(soundEnabled and "ON" or "OFF"),UDim2.fromOffset(0,0),UDim2.fromOffset(490,50),function() soundEnabled=not soundEnabled; showSettings() end)
 	button(panelBody,"Reduced motion: "..(reducedMotion and "ON" or "OFF"),UDim2.fromOffset(0,60),UDim2.fromOffset(490,50),function() reducedMotion=not reducedMotion; if profilePulse then if reducedMotion then profilePulse:Pause() else profilePulse:Play() end end; showSettings() end)
 	button(panelBody,"Low effects: "..(lowEffects and "ON" or "OFF"),UDim2.fromOffset(0,120),UDim2.fromOffset(490,50),function() lowEffects=not lowEffects; if scene then scene.setLowEffects(lowEffects) end; showSettings() end)
-	text(panelBody,"Settings apply to this session. Low effects disables menu smoke and color grading.",UDim2.fromOffset(0,195),UDim2.fromOffset(490,60),14,muted)
+	text(panelBody,"Settings apply to this session. Low effects reduces tumbleweeds and disables smoke and color grading.",UDim2.fromOffset(0,195),UDim2.fromOffset(490,60),14,muted)
 end
 local opening = frame(root,UDim2.fromScale(.5,.5),UDim2.fromOffset(600,100))
 opening.AnchorPoint=Vector2.new(.5,.5)
@@ -166,6 +169,8 @@ local storyButton, onlineButton
 local function returnToOpening()
 	closePanel(); menu.Visible=false; opening.Visible=true; state="opening"
 	root.BackgroundTransparency=0
+	if shade then shade.Visible=false end
+	for _,bar in bars do bar.Size=UDim2.new(1,0,0,0) end
 	GuiService.SelectedObject=storyButton
 end
 local function showOptions()
@@ -174,11 +179,26 @@ local function showOptions()
 	button(panelBody,"←  Return to mode selection",UDim2.fromOffset(0,200),UDim2.fromOffset(490,44),returnToOpening).TextSize=17
 end
 for index,item in {{"Play",showPlay},{"Invite",showInvite},{"Shop",showShop},{"Settings",showSettings},{"Options",showOptions}} do
-	local b = button(menu,item[1],UDim2.fromOffset(83,190+(index-1)*56),UDim2.fromOffset(280,48),item[2])
-	b.TextSize=26
+	local b = button(menu,item[1],UDim2.fromOffset(28,190+(index-1)*56),UDim2.fromOffset(245,48),item[2])
+	b.TextSize=24
+	b.BackgroundColor3=Color3.fromRGB(166,135,90)
+	b.BackgroundTransparency=.22
+	b.BorderSizePixel=0
+	b.TextColor3=Color3.fromRGB(250,234,204)
+	make("UIPadding",{PaddingLeft=UDim.new(0,16)},b)
+	make("UICorner",{CornerRadius=UDim.new(0,3)},b)
+	make("UIStroke",{ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(217,185,131),Thickness=1,Transparency=.6},b)
+	make("UIGradient",{Rotation=8,Color=ColorSequence.new(Color3.fromRGB(214,190,143),Color3.fromRGB(116,88,55))},b)
+	local grain=Random.new(index*71)
+	for _=1,14 do
+		make("Frame",{Position=UDim2.fromScale(grain:NextNumber(.02,.97),grain:NextNumber(.05,.95)),Size=UDim2.fromOffset(grain:NextInteger(1,5),1),BackgroundColor3=Color3.fromRGB(73,54,35),BackgroundTransparency=.65,BorderSizePixel=0,Active=false},b)
+	end
+	b.MouseEnter:Connect(function() tween(b,.15,{BackgroundTransparency=.06}) end)
+	b.MouseLeave:Connect(function() tween(b,.15,{BackgroundTransparency=.22}) end)
 	if index == 1 then firstMenuButton=b end
-	text(menu,string.format("0%d",index),UDim2.fromOffset(28,190+(index-1)*56),UDim2.fromOffset(40,48),12,muted)
 end
+local backButton = button(menu,"← Back",UDim2.fromOffset(28,486),UDim2.fromOffset(245,44),returnToOpening)
+backButton.TextSize=18
 local profile = make("ImageButton",{Position=UDim2.fromOffset(302,202),Size=UDim2.fromOffset(64,64),BackgroundColor3=Color3.fromRGB(43,40,32),BackgroundTransparency=.2,Image="",AutoButtonColor=false},menu)
 make("UICorner",{CornerRadius=UDim.new(1,0)},profile)
 local ring = make("UIStroke",{Color=accent,Thickness=1.4,Transparency=.2},profile)
@@ -196,9 +216,9 @@ task.spawn(function()
 	if ok and profile.Parent then profile.Image=url end
 end)
 local credit = text(menu,"Developed by MHIDE",UDim2.fromOffset(28,552),UDim2.fromOffset(350,25),13,muted)
-local inspiration = text(menu,"Be Inspired",UDim2.fromOffset(730,552),UDim2.fromOffset(240,25),14,warm)
-inspiration.TextXAlignment=Enum.TextXAlignment.Right
-local footer = text(menu,"STORY MODE  /  THE DESERT",UDim2.fromOffset(28,576),UDim2.fromOffset(430,20),10,muted)
+local inspiration = text(menu,"Be Inspired",UDim2.fromOffset(28,574),UDim2.fromOffset(240,22),14,warm)
+inspiration.TextXAlignment=Enum.TextXAlignment.Left
+local footer = text(menu,"STORY MODE  /  THE DESERT",UDim2.fromOffset(570,574),UDim2.fromOffset(400,20),10,muted)
 resize = function()
 	local size = root.AbsoluteSize
 	local narrow = size.X < size.Y
@@ -208,16 +228,16 @@ resize = function()
 	titleLabel.Size = UDim2.fromOffset(narrow and 550 or 730,65)
 	titleLabel.TextSize = narrow and 44 or 52
 	credit.Position = UDim2.fromOffset(28,narrow and 640 or 552)
-	inspiration.Position = UDim2.fromOffset(narrow and 330 or 730,narrow and 640 or 552)
-	footer.Position = UDim2.fromOffset(28,narrow and 670 or 576)
+	inspiration.Position = UDim2.fromOffset(28,narrow and 663 or 574)
+	footer.Position = UDim2.fromOffset(570,574)
+	footer.Visible = not narrow
 end
--- The original signal calls its original function; connect the adaptive layout too.
+-- Apply the complete layout once all controls exist.
 root:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
 resize()
 -- A restrained left-side shade keeps text readable against the desert.
-local shade = make("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(),BorderSizePixel=0,Visible=false,ZIndex=0},root)
+shade = make("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(),BorderSizePixel=0,Visible=false,ZIndex=0},root)
 make("UIGradient",{Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.2),NumberSequenceKeypoint.new(.48,.6),NumberSequenceKeypoint.new(1,1)})},shade)
-local bars = {}
 for _,y in {0,1} do
 	local bar = make("Frame",{Size=UDim2.new(1,0,0,.0),Position=UDim2.fromScale(0,y),AnchorPoint=Vector2.new(0,y),BackgroundColor3=Color3.new(),BorderSizePixel=0,ZIndex=2},root)
 	table.insert(bars,bar)
