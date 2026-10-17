@@ -9,7 +9,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 suites = {
-    'diner-integration': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau', '-- INSERT_DINER': 'src/client/DinerOpening.luau', '-- INSERT_BROADCAST': 'src/client/DinerBroadcast.luau', '-- INSERT_ART': 'src/client/DinerArt.luau', '-- INSERT_PAINTINGS': 'src/client/DinerPaintings.luau', '-- INSERT_CAST': 'src/client/DinerCast.luau', '-- INSERT_OUTFIT': 'src/shared/WesternOutfit.luau', '-- INSERT_LANDSCAPE': 'src/client/LoadingLandscape.luau', '-- INSERT_LOADING': 'src/client/StoryLoading.luau'},
+    'diner-integration': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau', '-- INSERT_DINER': 'src/client/DinerOpening.luau', '-- INSERT_BROADCAST': 'src/client/DinerBroadcast.luau', '-- INSERT_AUDIO': 'src/client/DinerAudio.luau', '-- INSERT_ART': 'src/client/DinerArt.luau', '-- INSERT_PAINTINGS': 'src/client/DinerPaintings.luau', '-- INSERT_CAST': 'src/client/DinerCast.luau', '-- INSERT_OUTFIT': 'src/shared/WesternOutfit.luau', '-- INSERT_LANDSCAPE': 'src/client/LoadingLandscape.luau', '-- INSERT_LOADING': 'src/client/StoryLoading.luau'},
     'diner': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau'},
     'character': {
         '-- INSERT_CATALOG': 'src/shared/CharacterCatalog.luau',

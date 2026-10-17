@@ -1,4 +1,4 @@
--- Four original R6 characters. Faces are drawn locally, without catalog dependencies.
+-- Original R6 diner characters. Faces are drawn locally, without catalog dependencies.
 local Cast={}
 local C=Color3.fromRGB
 local V=Vector3.new
@@ -7,6 +7,8 @@ local people={
 	{Name="June Calder · roadside regular",Skin=C(224,173,136),Hair=C(115,56,34),Shirt=C(215,196,162),Coat=C(102,123,104),Pants=C(62,75,81),Style="regular"},
 	{Name="Rosa Vale · server",Skin=C(157,103,74),Hair=C(43,29,25),Shirt=C(111,158,146),Coat=C(111,158,146),Pants=C(70,91,84),Style="server"},
 	{Name="Leon Brooks · cook",Skin=C(119,80,57),Hair=C(36,31,29),Shirt=C(231,219,194),Coat=C(231,219,194),Pants=C(47,49,47),Style="cook"},
+	{Name="Ida Mercer · newspaper reader",Skin=C(212,164,133),Hair=C(125,120,110),Shirt=C(201,180,150),Coat=C(113,78,62),Pants=C(62,65,69),Style="regular"},
+	{Name="Walt Finch · counter customer",Skin=C(174,125,89),Hair=C(58,45,34),Shirt=C(149,163,159),Coat=C(75,90,88),Pants=C(48,56,64),Style="surveyor"},
 }
 local function makeFace(head,person,index)
 	for _,child in head:GetChildren() do if child:IsA("Decal") or child:IsA("SurfaceGui") then child:Destroy() end end

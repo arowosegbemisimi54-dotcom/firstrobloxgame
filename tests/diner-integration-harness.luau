@@ -32,7 +32,7 @@ local NumberSequence={new=function(...) return {...} end}
 local NumberSequenceKeypoint={new=function(...) return {...} end}
 local ColorSequence=NumberSequence
 local ColorSequenceKeypoint=NumberSequenceKeypoint
-local task={wait=function() end}
+local task={wait=function() end,spawn=function(callback) callback() end}
 local Enum=setmetatable({},{__index=function(_,k) return setmetatable({},{__index=function(_,v) return k..v end}) end})
 local nativeMath=math
 local math=table.clone(math)
@@ -52,6 +52,11 @@ function meta.__newindex(self,key,value)
 	end
 	self.values[key]=value
 end
+function methods:Play() self.IsPlaying=true; self.plays=(self.plays or 0)+1 end
+function methods:Pause() self.IsPlaying=false end
+function methods:Stop() self.IsPlaying=false end
+function methods:LoadAsync() self.IsLoaded=true; self.TimeLength=15 end
+function methods:SetDistanceAttenuation() end
 function methods:GetChildren() local list={}; for child in self.children do table.insert(list,child) end; return list end
 function methods:PivotTo(value) self.pivots=(self.pivots or 0)+1; self.lastPivot=value end
 function methods:Destroy()
@@ -127,7 +132,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -147,6 +152,9 @@ modules.landscape=Landscape
 local Loading=(function()
 -- INSERT_LOADING
 end)()
+modules.audio=(function()
+-- INSERT_AUDIO
+end)()
 modules.broadcast=(function()
 -- INSERT_BROADCAST
 end)()
@@ -162,7 +170,7 @@ local cast={}
 for _,obj in objects do
  if obj.ClassName=="Model" and obj.Parent and obj.Parent.Name=="ShirtsAndSkins_DinerOpening" and obj:FindFirstChildOfClass("Humanoid") then table.insert(cast,obj) end
 end
-check(#cast==5,"diner has player, two other customers, waitress, chef")
+check(#cast==7,"diner has player, shared-table pair, reader, bar customer and two workers")
 local faceCount=0
 local mouths={}
 local eyes={}
@@ -173,14 +181,14 @@ for _,person in cast do
   if obj.Name=="Eye white" then eyes[obj]=obj.Size.Y.Offset end
  end
 end
-check(faceCount==4,"all four original NPCs have locally authored animated faces")
+check(faceCount==6,"all six original NPCs have locally authored animated faces")
 local parts=0
 local counts={}
 for _,obj in objects do
  if obj:IsA("BasePart") then parts+=1 end
  if obj.Name then counts[obj.Name]=(counts[obj.Name] or 0)+1 end
 end
-check(parts<2100 and #objects<6200,"expanded diner stays within geometry and artwork allocation budgets")
+check(parts<2400 and #objects<6200,"expanded diner stays within geometry and artwork allocation budgets")
 check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
 check(counts["Booth side window"]==4,"each booth bay has a side window")
 check(counts["Painted landscape"]==2 and counts["Hanging opal globe"]==12,"original paintings and suspended lights are present")
@@ -213,11 +221,23 @@ for _,person in cast do
 end
 check(posed,"R6 joint animation path runs without missing-joint errors")
 callbacks["Next shot →"]()
+render.callback(.2)
+local pausedPour=false
+local voicesPlaying=0
+local stingers=0
+for _,obj in objects do
+ if obj.Name=="Coffee pour stream" and obj.Transparency==1 then pausedPour=true end
+ if obj.ClassName=="AudioTextToSpeech" and obj.IsPlaying then voicesPlaying+=1 end
+ if obj.Name=="News stinger" and (obj.plays or 0)>0 then stingers+=1 end
+end
+check(pausedPour and voicesPlaying==1 and stingers>=2,"news entrance pauses pouring and starts one shared narration source with both stingers")
 callbacks["Skip opening"]()
 stop()
 check(finishes==1 and render.callback==nil,"skip cleans up once and disconnects camera animation")
 for _,person in cast do assert(person.destroyed,"cast leaked after skip") end
 check(true,"all diner actors destroyed after skip")
+for _,obj in objects do if obj.ClassName=="AudioTextToSpeech" then assert(not obj.IsPlaying and obj.destroyed,"narration leaked after skip") end end
+check(true,"skip stops and destroys narration")
 check(lighting.ClockTime==17.7 and lighting.GeographicLatitude==41 and lighting.FogEnd==850 and lighting.GlobalShadows==false and grade.Enabled==true,"skip restores all overridden menu lighting including disabled booleans")
 local wardrobeRig=rig()
 Outfit.apply(wardrobeRig,{gender="Girl",outfit={Hat="cowboy"}})

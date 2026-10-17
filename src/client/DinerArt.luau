@@ -156,7 +156,7 @@ function Art.build(model,origin)
 		part("Ivory laminate tabletop",V(8,.12,4.6),V(x,2.88,z),ivory,Enum.Material.Marble)
 		disk("Table pedestal foot",V(x,.09,z),1.2,.17,chrome,Enum.Material.Metal)
 		disk("Table chrome pedestal",V(x,1.4,z),.16,2.7,chrome,Enum.Material.Metal)
-		if index<=3 then meal(x,z-.65,index==3 and "burger" or "steak") end
+		if index==2 then meal(x,z-.65,"steak") end
 		condiments(x-2.6,z+.6,3)
 		sign("Table menu","TODAY\nSTEAK & EGGS\nCOFFEE",V(x+2.8,3.5,z+.8),Vector2.new(.85,1),teal,ivory)
 	end
@@ -187,6 +187,15 @@ function Art.build(model,origin)
 	part("Kitchen prep table",V(6,.2,3),V(25,2.9,-4),chrome,Enum.Material.Metal)
 	for _,x in {22.4,27.6} do for _,z in {-5,-3} do part("Prep table leg",V(.15,2.8,.15),V(x,1.4,z),chrome,Enum.Material.Metal) end end
 	part("Cutting board",V(2,.12,1.2),V(25,3.08,-4),C(148,107,62),Enum.Material.Wood)
+	part("Kitchen pass sill",V(.6,.2,16),V(21.5,3.3,-11),chrome,Enum.Material.Metal)
+	part("Kitchen window header",V(.6,1.3,17),V(21.5,8,-11),ivory)
+	for _,z in {-19.5,-2.5} do part("Kitchen window jamb",V(.6,5,.5),V(21.5,5.5,z),ivory) end
+	disk("Shared fries platter",V(-31,3.01,-23),.85,.07,ivory)
+	for i=1,18 do part("Shared table fries",V(.09,.1,.65),V(-31+(i%5)*.15-.3,3.1+math.floor(i/5)*.08,-23+(i%3)*.16-.2),C(223,171,72),nil,nil,CFrame.Angles(0,i*.5,0)) end
+	disk("Reader pancake plate",V(-31,3.01,8.35),.9,.07,ivory)
+	for i=1,3 do disk("Golden pancake",V(-31,3.08+i*.11,8.35),.6,.1,C(201+i*7,140+i*5,64)) end
+	part("Pancake butter",V(.25,.08,.22),V(-31,3.47,8.35),C(243,213,123))
+	cup(17.6,3.47,5.4)
 	for _,x in {-30,-12,14} do for _,z in {-23,-7,9,25} do
 		disk("Pendant ceiling rose",V(x,14.2,z),.35,.15,chrome,Enum.Material.Metal)
 		disk("Hanging lamp stem",V(x,12.5,z),.045,3.2,C(55,53,46),Enum.Material.Metal)
@@ -207,21 +216,38 @@ function Art.held(rig,arm,role)
 		part.CanCollide,part.CanTouch,part.CanQuery,part.Massless=false,false,false,true
 		part.CFrame=arm.CFrame*CFrame.new(offset)*(rotation or CFrame.new()); if shape then part.Shape=shape end; part.Parent=rig
 		local weld=Instance.new("WeldConstraint"); weld.Part0,weld.Part1,weld.Parent=arm,part,part
+		return part
 	end
 	local grip=-arm.Size.Y*.43
 	if role=="waitress" then
-		p("Oval service tray",V(1.8,.08,1.3),V(0,grip,-.65),chrome,Enum.PartType.Ball)
-		p("Tray porcelain cup",V(.46,.42,.42),V(.2,grip+.24,-.8),ivory,Enum.PartType.Cylinder,CFrame.Angles(0,0,math.pi/2))
-		p("Tray coffee surface",V(.02,.35,.35),V(.2,grip+.48,-.8),C(48,26,16),Enum.PartType.Cylinder,CFrame.Angles(0,0,math.pi/2))
-		for i=1,10 do
-			local a=i*math.pi/5
-			p("Tray mug handle",V(.065,.08,.065),V(.45+math.cos(a)*.12,grip+.26+math.sin(a)*.15,-.8),ivory,Enum.PartType.Ball)
+		local pot=p("Coffee pot",V(.7,.7,.8),V(0,grip,-.45),C(91,58,31),Enum.PartType.Ball)
+		p("Coffee pot lid",V(.75,.12,.8),V(0,grip+.35,-.45),chrome)
+		local spout=p("Coffee pot spout",V(.18,.14,.38),V(0,grip+.1,-.98),chrome)
+		for i=1,8 do local a=i*math.pi/4; p("Coffee pot handle",V(.1,.1,.1),V(.2+math.cos(a)*.35,grip+math.sin(a)*.3,-.25),chrome,Enum.PartType.Ball) end
+		return {pot=pot,spout=spout}
+	elseif role=="bar" then
+		p("Customer coffee mug",V(.55,.5,.55),V(0,grip,-.25),ivory)
+		p("Customer coffee",V(.43,.02,.43),V(0,grip+.26,-.25),C(48,26,16))
+	elseif role=="reader" then
+		local paper=p("Folded diner newspaper",V(1.6,1.05,.035),V(0,grip+.25,-.5),C(213,205,181))
+		local page=p("Turning newspaper page",V(.8,1.05,.035),V(.4,grip+.25,-.53),C(225,216,191))
+		for _,sheet in {paper,page} do
+			local gui=Instance.new("SurfaceGui"); gui.Face=Enum.NormalId.Front; gui.CanvasSize=Vector2.new(300,240); gui.Parent=sheet
+			local text=Instance.new("TextLabel"); text.Size=UDim2.fromScale(1,1); text.BackgroundTransparency=1; text.Text="THE DAILY BLOX\n--------------------\nLOCAL NEWS   |   ROUTE 4\nMarkets • Travel • Weather"; text.TextColor3=C(53,51,45); text.TextScaled=true; text.Font=Enum.Font.SpecialElite; text.TextWrapped=true; text.Parent=gui
 		end
+		local oldWeld=page:FindFirstChildOfClass("WeldConstraint"); oldWeld:Destroy()
+		local hinge=Instance.new("Weld"); hinge.Part0=arm; hinge.Part1=page; hinge.C0=CFrame.new(.4,grip+.25,-.53); hinge.Parent=page
+		return {pageHinge=hinge,grip=grip}
 	else
 		p("Utensil handle",V(.07,.08,.55),V(0,grip,-.28))
 		if role=="chef" then
 			p("Spatula blade",V(.42,.035,.46),V(0,grip,-.77))
 			for i=1,3 do p("Spatula slot",V(.035,.038,.24),V(-.16+i*.08,grip,-.77),C(54,57,55)) end
+			arm=rig:FindFirstChild("Left Arm") or arm
+			local pan=p("Chef frying pan",V(.13,1.3,1.3),V(0,grip,-.75),C(37,39,38),Enum.PartType.Cylinder,CFrame.Angles(0,0,math.pi/2))
+			p("Chef pan handle",V(.13,.09,.6),V(0,grip,-.15),C(52,48,42))
+			local patty=Instance.new("Part"); patty.Name="Flipping burger"; patty.Size=V(.10,.8,.8); patty.Shape=Enum.PartType.Cylinder; patty.Color=C(91,48,29); patty.Anchored=true; patty.CanCollide=false; patty.CanTouch=false; patty.CanQuery=false; patty.CFrame=pan.CFrame; patty.Parent=rig
+			return {pan=pan,patty=patty}
 		else
 			p("Fork shoulder",V(.22,.035,.12),V(0,grip,-.59))
 			for i=1,4 do p("Held fork tine",V(.025,.035,.24),V(-.1+i*.04,grip,-.76)) end
