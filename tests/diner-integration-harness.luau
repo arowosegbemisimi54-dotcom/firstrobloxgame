@@ -20,7 +20,7 @@ local Vector3=Vector
 local Vector2={new=function(x,y) return {X=x,Y=y} end}
 local transform={}
 transform.__index=transform
-function transform.__mul(a) return a end
+function transform.__mul(a,b) return setmetatable({Position=a.Position,left=a,right=b},transform) end
 function transform:ToObjectSpace(other) return other end
 function transform:VectorToWorldSpace(v) return v end
 local function cf(position) return setmetatable({Position=type(position)=="table" and position or Vector.new(0,0,0)},transform) end
@@ -108,13 +108,14 @@ local function signal()
  return s
 end
 function methods:GetPropertyChangedSignal() return signal() end
-local function rig()
+local function rig(kind)
  local model=Instance.new("Model")
- for _,name in {"HumanoidRootPart","Torso","Head","Left Arm","Right Arm","Left Leg","Right Leg"} do
+ local names=kind=="R6" and {"HumanoidRootPart","Torso","Head","Left Arm","Right Arm","Left Leg","Right Leg"} or {"HumanoidRootPart","UpperTorso","LowerTorso","Head","LeftUpperArm","LeftLowerArm","LeftHand","RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}
+ for _,name in names do
   local p=Instance.new("Part"); p.Name=name; p.CFrame=cf(); p.Size=Vector.new(1,2,1); p.Color=color; p.Parent=model
  end
  local humanoid=Instance.new("Humanoid"); humanoid.Parent=model
- for _,name in {"Neck","Left Shoulder","Right Shoulder","Left Hip","Right Hip"} do
+ for _,name in {"Neck","Waist","LeftShoulder","RightShoulder","LeftElbow","RightElbow","LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle"} do
   local joint=Instance.new("Motor6D"); joint.Name=name; joint.C0=cf(); joint.Parent=model
  end
  return model
@@ -145,7 +146,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -186,8 +187,14 @@ end)()
 modules.escapeProps=(function()
 -- INSERT_ESCAPE_PROPS
 end)()
+modules.motion=(function()
+-- INSERT_MOTION
+end)()
 modules.escape=(function()
 -- INSERT_ESCAPE
+end)()
+modules.motion=(function()
+-- INSERT_MOTION
 end)()
 local Diner=(function()
 -- INSERT_DINER
@@ -196,7 +203,7 @@ local checks=0
 local function check(ok,label) assert(ok,label); checks+=1; print("PASS: "..label) end
 local diner=Diner.create({name="Test",gender="Boy",outfit={Hat="cowboy"}})
 diner.prepare()
-check(requestedRig=="HumanoidRigTypeR6","diner requests standard R6 NPCs")
+check(requestedRig=="HumanoidRigTypeR15","diner requests R15 NPCs")
 local cast={}
 for _,obj in objects do
  if obj.ClassName=="Model" and obj.Parent and obj.Parent.Name=="ShirtsAndSkins_DinerOpening" and obj:FindFirstChildOfClass("Humanoid") then table.insert(cast,obj) end
@@ -256,9 +263,9 @@ check(blinked and chewed,"NPCs blink and animate their mouths during the opening
 check(workspace.CurrentCamera.CameraType=="CameraTypeScriptable","diner takes scripted camera control")
 local posed=false
 for _,person in cast do
- for _,joint in person:GetDescendants() do if joint.ClassName=="Motor6D" and joint.Name=="Right Shoulder" and joint.C0~=originalJoints[joint] then posed=true end end
+ for _,joint in person:GetDescendants() do if joint.ClassName=="Motor6D" and joint.Name=="RightShoulder" and joint.C0~=originalJoints[joint] then posed=true end end
 end
-check(posed,"R6 joint animation path runs without missing-joint errors")
+check(posed,"R15 joint animation path runs without missing-joint errors")
 render.callback(1.7)
 local pausedPour=false
 local voicesPlaying=0
@@ -282,7 +289,7 @@ Outfit.apply(wardrobeRig,{gender="Girl",outfit={Hat="cowboy"}})
 local originalWardrobe=wardrobeRig:FindFirstChild("WesternWardrobe")
 local hasHat=false
 for _,p in originalWardrobe:GetDescendants() do if p.Name=="Shaped cowboy brim" then hasHat=true end end
-check(hasHat,"R6 starter wardrobe includes fitted cowboy hat")
+check(hasHat,"R15 starter wardrobe includes fitted cowboy hat")
 Outfit.apply(wardrobeRig,{gender="Girl",outfit={Hat="none"}})
 local hats=0
 for _,p in wardrobeRig:GetDescendants() do if p.Name=="Shaped cowboy brim" then hats+=1 end end
@@ -294,22 +301,22 @@ check(not okFailure and render.callback==nil,"loader failure cleans up in reduce
 for _,obj in objects do if obj.ClassName=="ViewportFrame" then assert(obj.destroyed,"loading viewport leaked") end end
 check(true,"loading geometry is destroyed after success and failure")
 -- Reproduce the reported failure: the account character has no R6 Torso.
-local sourceTorso=player.Character:FindFirstChild("Torso")
-sourceTorso.Name="UpperTorso"
+local sourceTorso=player.Character:FindFirstChild("UpperTorso")
+sourceTorso.Name="Torso"
 local descriptionReads=0
 player.Character:FindFirstChildOfClass("Humanoid").GetAppliedDescription=function()
  descriptionReads+=1; return Instance.new("HumanoidDescription")
 end
 local natural=Diner.create({gender="Boy",outfit={Hat="none"}}); natural.prepare()
-check(descriptionReads==1 and sourceTorso.Name=="UpperTorso","R15 source avatar is converted for the story without changing the live avatar")
-local r6Crew=0
+check(descriptionReads==1 and sourceTorso.Name=="Torso","R6 source avatar is converted for the story without changing the live avatar")
+local r15Crew=0
 for _,obj in objects do
  if not obj.destroyed and obj.ClassName=="Model" and (obj.Name:find("Masked crew ") or obj.Name:find("Highway patrol officer ")) then
-  assert(obj:FindFirstChild("Torso") and obj:FindFirstChild("Left Arm"),"escape actor inherited non-R6 rig")
-  r6Crew+=1
+  assert(obj:FindFirstChild("UpperTorso") and obj:FindFirstChild("LeftHand"),"escape actor inherited non-R15 rig")
+  r15Crew+=1
  end
 end
-check(r6Crew==6,"all four crew and both officers use independent R6 templates with an R15 player")
+check(r15Crew==6,"all four crew and both officers use independent R15 templates with an R6 player")
 local stopNatural=natural.play(root,ui,function() finishes+=1 end,function() return true end)
 render.callback(100)
 check(finishes==1 and actions.HighwayFour_Interact~=nil,"radio completion hands off into playable chapter without returning to menu")

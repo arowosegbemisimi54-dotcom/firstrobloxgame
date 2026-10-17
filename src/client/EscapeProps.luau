@@ -45,7 +45,7 @@ function Props.build(ctx)
  local burnout=smoke(exhaust,0,4)
  local function rig(index,name,masked)
   -- Crew/officers must not inherit a player's rig type, accessories or held props.
-  local template=assert(ctx.rigTemplate,"Escape cast requires its R6 template")
+  local template=assert(ctx.rigTemplate,"Escape cast requires its R15 template")
   local character=template:Clone(); character.Name=name
   for _,obj in character:GetDescendants() do
    if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("Animator") then obj:Destroy()
@@ -64,17 +64,17 @@ function Props.build(ctx)
   local head=character:FindFirstChild("Head")
   if masked then
    wearable(head,"Crew folded bandanna",V(1.12,.5,.14),CFrame.new(0,-.25,-.56),C(37+index*9,38+index*5,35))
-   local arm=character:FindFirstChild("Left Arm")
-   local bag=wearable(arm,"Cash filled canvas duffel",V(1.1,.9,1.9),CFrame.new(0,-1.4,0),C(76,70,48)); bag.Shape=Enum.PartType.Ball
-   wearable(arm,"Duffel leather handle",V(.6,.16,.15),CFrame.new(0,-.9,0),C(49,37,25))
-   wearable(arm,"Duffel zipper",V(.05,.04,1.5),CFrame.new(0,-.95,0),C(178,159,105))
+   local arm=character:FindFirstChild("LeftHand")
+   local bag=wearable(arm,"Cash filled canvas duffel",V(1.1,.9,1.9),CFrame.new(0,-.75,0),C(76,70,48)); bag.Shape=Enum.PartType.Ball
+   wearable(arm,"Duffel leather handle",V(.6,.16,.15),CFrame.new(0,-.25,0),C(49,37,25))
+   wearable(arm,"Duffel zipper",V(.05,.04,1.5),CFrame.new(0,-.3,0),C(178,159,105))
   else
-   for _,obj in character:GetDescendants() do if obj:IsA("BasePart") and (obj.Name:find("jacket") or obj.Name:find("trouser") or obj.Name=="Torso" or obj.Name:find(" Arm") or obj.Name:find(" Leg")) then obj.Color=C(37,49,64) end end
-   wearable(character.Torso,"Officer brass badge",V(.2,.25,.04),CFrame.new(-.5,.45,-.61),C(191,153,70))
-   local arm=character:FindFirstChild("Right Arm")
-   wearable(arm,"Period service revolver",V(.16,.19,.65),CFrame.new(0,-1.05,-.28),C(49,51,51))
+   for _,obj in character:GetDescendants() do if obj:IsA("BasePart") and (obj.Name:find("jacket") or obj.Name:find("trouser") or obj.Name:find("Torso") or obj.Name:find("Arm") or obj.Name:find("Leg")) then obj.Color=C(37,49,64) end end
+   wearable(character.UpperTorso,"Officer brass badge",V(.2,.25,.04),CFrame.new(-.5,.45,-.61),C(191,153,70))
+   local arm=character:FindFirstChild("RightHand")
+   wearable(arm,"Period service revolver",V(.16,.19,.65),CFrame.new(0,-.15,-.28),C(49,51,51))
   end
-  return {rig=character,face=face,joints=joints}
+  return {rig=character,face=face,joints=joints,style=masked and "crew" or "officer"}
  end
  local crew,officers={},{}
  for i=1,4 do crew[i]=rig(i,"Masked crew "..i,true); crew[i].rig:PivotTo(CFrame.new(origin+V(-115,-30,-55))) end

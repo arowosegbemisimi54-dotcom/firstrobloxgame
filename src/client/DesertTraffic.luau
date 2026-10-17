@@ -49,18 +49,24 @@ function Traffic.build(part,parent,origin)
 			p("Front fork",V(.14,2,.14),V(0,.8,-1.9),metal,nil,CFrame.Angles(-.22,0,0))
 			p("Chrome handlebar",V(1.6,.13,.13),V(0,2,-1.5),metal)
 			p("Round motorcycle headlamp",V(.6,.6,.15),V(0,1.7,-2),C(243,215,154),Enum.PartType.Ball)
-			-- A posed six-part R6-proportioned background rider, seated at the controls.
-			local rider=Instance.new("Model"); rider.Name="R6 background rider"; rider.Parent=model
+			-- A posed segmented R15-proportioned background rider, seated at the controls.
+			local rider=Instance.new("Model"); rider.Name="R15 background rider"; rider.Parent=model
 			local function body(name,size,pos,color,rotation)
 				local b=p(name,size,pos,color,nil,rotation); b.Parent=rider; return b
 			end
-			body("Torso",V(1.4,1.45,.7),V(0,2.45,.7),C(75,58,43),CFrame.Angles(-.18,0,0))
-			local head=body("Head",V(.95,.95,.95),V(0,3.62,.42),C(191,145,108)); head.Shape=Enum.PartType.Ball
+			body("UpperTorso",V(1.4,.9,.7),V(0,2.7,.65),C(75,58,43),CFrame.Angles(-.18,0,0))
+			body("LowerTorso",V(1.2,.55,.65),V(0,2,.8),C(75,58,43))
+            local head=body("Head",V(.95,.95,.95),V(0,3.62,.42),C(191,145,108)); head.Shape=Enum.PartType.Ball
 			p("Rider leather helmet",V(1.02,.58,1.02),V(0,3.97,.42),dark,Enum.PartType.Ball)
 			p("Rider goggles",V(.8,.19,.12),V(0,3.69,-.06),metal)
 			for _,side in {-1,1} do
-				body(side<0 and "Left Arm" or "Right Arm",V(.43,1.6,.43),V(side*.78,2.35,-.6),C(75,58,43),CFrame.Angles(1,0,side*.1))
-				body(side<0 and "Left Leg" or "Right Leg",V(.48,1.7,.48),V(side*.62,.95,.9),C(47,53,57),CFrame.Angles(.5,0,side*.15))
+                local prefix=side<0 and "Left" or "Right"
+                body(prefix.."UpperArm",V(.43,.75,.43),V(side*.78,2.6,-.15),C(75,58,43),CFrame.Angles(.7,0,side*.1))
+                body(prefix.."LowerArm",V(.4,.7,.4),V(side*.78,2.2,-.7),C(75,58,43),CFrame.Angles(1.2,0,0))
+                body(prefix.."Hand",V(.35,.3,.35),V(side*.78,2.05,-1.1),C(191,145,108))
+                body(prefix.."UpperLeg",V(.48,.85,.48),V(side*.62,1.6,.4),C(47,53,57),CFrame.Angles(-1.2,0,side*.15))
+                body(prefix.."LowerLeg",V(.45,.8,.45),V(side*.69,1,.1),C(47,53,57))
+                body(prefix.."Foot",V(.45,.3,.7),V(side*.69,.6,-.05),dark)
 			end
 		else
 			Cars.build(p,wheel,variant)

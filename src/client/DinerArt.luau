@@ -302,7 +302,7 @@ function Art.held(rig,arm,role)
 		if role=="chef" then
 			p("Spatula blade",V(.42,.035,.46),V(0,grip,-.77))
 			for i=1,3 do p("Spatula slot",V(.035,.038,.24),V(-.16+i*.08,grip,-.77),C(54,57,55)) end
-			arm=rig:FindFirstChild("Left Arm") or arm
+			arm=rig:FindFirstChild("LeftHand") or rig:FindFirstChild("Left Arm") or arm
 			local pan=p("Chef frying pan",V(.13,1.3,1.3),V(0,grip,-.75),C(37,39,38),Enum.PartType.Cylinder,CFrame.Angles(0,0,math.pi/2))
 			p("Chef pan handle",V(.13,.09,.6),V(0,grip,-.15),C(52,48,42))
 			local patty=Instance.new("Part"); patty.Name="Flipping burger"; patty.Size=V(.10,.8,.8); patty.Shape=Enum.PartType.Cylinder; patty.Color=C(91,48,29); patty.Anchored=true; patty.CanCollide=false; patty.CanTouch=false; patty.CanQuery=false; patty.CFrame=pan.CFrame; patty.Parent=rig

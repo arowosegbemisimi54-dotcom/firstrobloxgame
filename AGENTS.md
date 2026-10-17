@@ -23,6 +23,6 @@ implemented.
 
 ## Character rig
 
-The user has chosen standard R6 for this project. Use R6 when creating NPCs or
-preview fallback rigs, and support its single-piece arms/legs and spaced joint
-names in clothing and animation. Do not switch back to R15 without instruction.
+The user explicitly switched the project to R15 on 2026-10-17. Use R15 for
+story characters, NPCs, live avatars and preview fallback rigs. Support segmented
+arms, hands, legs, knees, feet and waist joints in clothing and animation.

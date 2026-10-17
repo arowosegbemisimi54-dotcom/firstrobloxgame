@@ -5,6 +5,7 @@ local Timeline=require(shared.DinerTimeline)
 local Outfit=require(shared.WesternOutfit)
 local Art=require(script.Parent.DinerArt)
 local Cast=require(script.Parent.DinerCast)
+local Motion=require(script.Parent.CharacterMotion)
 local Lighting=game:GetService("Lighting")
 local Broadcast=require(script.Parent.DinerBroadcast)
 local Exterior=require(script.Parent.DinerExterior)
@@ -60,33 +61,29 @@ function Diner.create(profile)
 		table.insert(actors,{rig=rig,base=base,joints=joints,role=role,index=index,face=face,props=props,r6=rig:FindFirstChild("Torso")~=nil})
 	end
 	local coffeeStream=Instance.new("Part"); coffeeStream.Name="Coffee pour stream"; coffeeStream.Size=Vector3.new(.035,.035,.2); coffeeStream.Color=Color3.fromRGB(79,44,24); coffeeStream.Anchored=true; coffeeStream.CanCollide=false; coffeeStream.CanTouch=false; coffeeStream.CanQuery=false; coffeeStream.Transparency=1; coffeeStream.Parent=model
-	local function setJoint(actor,name,rotation)
-		local aliases={LeftShoulder="Left Shoulder",RightShoulder="Right Shoulder",LeftHip="Left Hip",RightHip="Right Hip"}
-		local data=actor.joints[name] or actor.joints[aliases[name]]
-		if data then data.joint.C0=CFrame.new(data.base.Position)*rotation*data.base.Rotation end
-	end
+	local setJoint=Motion.joint
 	return {
 		prepare=function()
 			local ok,err=xpcall(function()
-				template=Players:CreateHumanoidModelFromDescriptionAsync(blank,Enum.HumanoidRigType.R6)
+				template=Players:CreateHumanoidModelFromDescriptionAsync(blank,Enum.HumanoidRigType.R15)
 				local character=Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 				local hero
-				if character:FindFirstChild("Torso") then
+				if character:FindFirstChild("UpperTorso") then
 					local previous=character.Archivable; character.Archivable=true
 					hero=character:Clone(); character.Archivable=previous
 				else
-					-- Studio/account avatars can still spawn as R15. Convert the
+					-- Studio/account avatars can still spawn as R6. Convert the
 					-- appearance explicitly instead of copying that rig into the story.
 					local humanoid=assert(character:FindFirstChildOfClass("Humanoid"),"Player avatar has no Humanoid")
 					local description=humanoid:GetAppliedDescription()
 					local converted,result=pcall(function()
-						return Players:CreateHumanoidModelFromDescriptionAsync(description,Enum.HumanoidRigType.R6)
+						return Players:CreateHumanoidModelFromDescriptionAsync(description,Enum.HumanoidRigType.R15)
 					end)
 					description:Destroy()
 					if not converted then error(result) end
 					hero=result
 				end
-				assert(hero and hero:FindFirstChild("Torso"),"Could not create R6 story avatar")
+				assert(hero and hero:FindFirstChild("UpperTorso"),"Could not create R15 story avatar")
 				Outfit.apply(hero,profile)
 				actor("Main character",hero,Vector3.new(-31,2.65,-10.5),math.pi,"eat",1)
 				for i,z in {-26.5,-19.5} do
@@ -176,9 +173,9 @@ function Diner.create(profile)
 					local breath=math.sin(phase)*.025
 					if person.role=="eat" or person.role=="reader" or person.role=="bar" then
 						setJoint(person,"LeftHip",CFrame.Angles(math.pi/2,0,0)); setJoint(person,"RightHip",CFrame.Angles(math.pi/2,0,0))
-						setJoint(person,"LeftKnee",CFrame.Angles(math.pi/2,0,0)); setJoint(person,"RightKnee",CFrame.Angles(math.pi/2,0,0))
+						setJoint(person,"LeftKnee",CFrame.Angles(-math.pi/2,0,0)); setJoint(person,"RightKnee",CFrame.Angles(-math.pi/2,0,0))
 						local bite=reacting and 0 or (math.sin(phase)+1)/2
-						setJoint(person,"RightShoulder",CFrame.Angles(reacting and .45 or (person.r6 and (1.0+bite*.65) or (.5+bite*.55)),0,-.1)); setJoint(person,"RightElbow",CFrame.Angles(-.4-bite*1.2,0,0))
+						setJoint(person,"RightShoulder",CFrame.Angles(reacting and .45 or (person.r6 and (1.0+bite*.65) or (.5+bite*.55)),0,-.1)); setJoint(person,"RightElbow",CFrame.Angles(.4+bite*1.2,0,0))
 						setJoint(person,"Neck",CFrame.Angles(reacting and -.02 or -bite*.12,reacting and (person.index==3 and -.85 or .85) or math.sin(phase*.3)*.12,0))
 						person.rig:PivotTo(person.base*CFrame.new(0,breath,0)*(person.role=="bar" and CFrame.Angles(0,reacting and 1.4 or 0,0) or CFrame.new()))
 						if person.props.pageHinge then
@@ -196,7 +193,7 @@ function Diner.create(profile)
 						end
 					else
 						person.rig:PivotTo(person.base*CFrame.new(math.sin(elapsed*.5)*.4,breath,0))
-						setJoint(person,"RightShoulder",CFrame.Angles(.8,math.sin(phase*2)*.2,0)); setJoint(person,"RightElbow",CFrame.Angles(-.7+math.sin(phase*2)*.2,0,0))
+						setJoint(person,"RightShoulder",CFrame.Angles(.8,math.sin(phase*2)*.2,0)); setJoint(person,"RightElbow",CFrame.Angles(.7+math.sin(phase*2)*.2,0,0))
 						setJoint(person,"LeftShoulder",CFrame.Angles(.85+math.sin(phase*2)*.12,0,0)); setJoint(person,"Neck",CFrame.Angles(-.18,math.sin(phase)*.1,0))
 						if person.props.pan then
 							local toss=math.max(0,math.sin(elapsed*2.4))

@@ -178,12 +178,15 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 			task.spawn(function()
 				local character=Players.LocalPlayer.Character
 				local ok,rig=pcall(function()
-					if character and character:FindFirstChildOfClass("Humanoid") then
+					if character and character:FindFirstChild("UpperTorso") then
 						local archivable=character.Archivable; character.Archivable=true
 						local clone=character:Clone(); character.Archivable=archivable
 						return clone
 					end
-					return Players:CreateHumanoidModelFromDescriptionAsync(Instance.new("HumanoidDescription"),Enum.HumanoidRigType.R6)
+					local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+                    local description=humanoid and humanoid:GetAppliedDescription() or Instance.new("HumanoidDescription")
+                    local ok,value=pcall(function() return Players:CreateHumanoidModelFromDescriptionAsync(description,Enum.HumanoidRigType.R15) end)
+                    description:Destroy(); if not ok then error(value) end; return value
 				end)
 				loading=false
 				if destroyed then if ok and rig then rig:Destroy() end; return end

@@ -1,4 +1,4 @@
--- Original R6 diner characters. Faces are drawn locally, without catalog dependencies.
+-- Original R15 diner characters. Faces are drawn locally, without catalog dependencies.
 local Cast={}
 local C=Color3.fromRGB
 local V=Vector3.new
@@ -12,7 +12,7 @@ local people={
 }
 local function makeFace(head,person,index)
 	for _,child in head:GetChildren() do if child:IsA("Decal") or child:IsA("SurfaceGui") then child:Destroy() end end
-	-- Welded facial geometry stays visible on curved R6 heads, without a GUI
+	-- Welded facial geometry stays visible on curved heads, without a GUI
 	-- being hidden inside the head mesh at the mouth and cheek edges.
 	local face=Instance.new("Model"); face.Name="Animated character face"; face.Parent=head
 	local front=-head.Size.Z/2-.045
@@ -39,16 +39,16 @@ local function makeFace(head,person,index)
 	elseif person.Style=="regular" then
 		for _,side in {-1,1} do for i=1,3 do feature("Cheek freckle",side*(.27+i*.045),-.09+(i%2)*.035,.022,.022,C(149,89,59),.07) end end
 	end
-	return function(time,eating,reacting)
+	return function(time,eating,reacting,emotion)
 		local blink=(time+index*.83)%(3.3+index*.21)<.12
 		for _,eye in eyes do
 			eye.white.Size=V(.26,blink and .025 or (reacting and .26 or .22),.065)
 			eye.pupil.Transparency=blink and 1 or 0
 			eye.pupilJoint.C0=CFrame.new(eye.x+math.sin(time*.43+index)*.025,.12,front)
-			eye.brow.C0=CFrame.new(eye.x,reacting and .34 or .32,front)*CFrame.Angles(0,0,reacting and eye.side*.28 or math.sin(time*.6+index)*.08)
+			eye.brow.C0=CFrame.new(eye.x,reacting and .34 or .32,front)*CFrame.Angles(0,0,reacting and eye.side*(emotion=="focused" and -.3 or .28) or math.sin(time*.6+index)*.08)
 		end
 		local chewing=eating and math.sin(time*1.6+index+1)>.35
-		mouth.Size=V(reacting and .29 or .39,reacting and .19 or (chewing and .11+math.abs(math.sin(time*9))*.08 or .10),.09)
+		mouth.Size=V(reacting and .29 or .39,reacting and (emotion=="focused" and .07 or .19) or (chewing and .11+math.abs(math.sin(time*9))*.08 or .10),.09)
 		teeth.Transparency=reacting and 1 or 0
 	end
 end
@@ -56,11 +56,16 @@ function Cast.dress(rig,index)
 	local person=people[index]
 	rig.Name=person.Name
 	local head=rig:FindFirstChild("Head")
-	local torso=rig:FindFirstChild("Torso")
-	assert(head and torso,"Diner cast requires R6")
+	local torso=rig:FindFirstChild("UpperTorso") or rig:FindFirstChild("Torso")
+	assert(head and torso,"Diner cast requires a humanoid head and torso")
 	local clothes=Instance.new("Model"); clothes.Name="Original character wardrobe"; clothes.Parent=rig
 	local function piece(body,name,size,offset,color,shape,material)
-		local p=Instance.new("Part"); p.Name,p.Size,p.Color=name,size,color; p.Material=material or Enum.Material.Fabric
+		if body==torso then
+            local sx,sy,sz=body.Size.X/2,body.Size.Y/2,body.Size.Z
+            size=V(size.X*sx,size.Y*sy,size.Z*sz)
+            offset=CFrame.new(offset.Position.X*sx,offset.Position.Y*sy,offset.Position.Z*sz)*offset.Rotation
+        end
+        local p=Instance.new("Part"); p.Name,p.Size,p.Color=name,size,color; p.Material=material or Enum.Material.Fabric
 		p.CanCollide,p.CanTouch,p.CanQuery,p.Massless=false,false,false,true
 		p.CFrame=body.CFrame*offset; if shape then p.Shape=shape end; p.Parent=clothes
 		local weld=Instance.new("WeldConstraint"); weld.Part0,weld.Part1,weld.Parent=body,p,p
@@ -68,7 +73,7 @@ function Cast.dress(rig,index)
 	end
 	for _,body in rig:GetChildren() do
 		if body:IsA("BasePart") and body.Name~="HumanoidRootPart" then
-			body.Color=body.Name=="Head" and person.Skin or (body.Name:find("Leg") and person.Pants or person.Shirt)
+			body.Color=(body.Name=="Head" or body.Name:find("Hand")) and person.Skin or ((body.Name:find("Leg") or body.Name:find("Foot")) and person.Pants or person.Shirt)
 		end
 	end
 	-- The default description can contain BodyColors: keep it consistent with our palette.
@@ -77,17 +82,17 @@ function Cast.dress(rig,index)
 	local front=-torso.Size.Z/2-.025
 	local boot=C(63,43,31)
 	for _,side in {"Left","Right"} do
-		local arm=rig:FindFirstChild(side.." Arm")
-		local leg=rig:FindFirstChild(side.." Leg")
+		local arm=rig:FindFirstChild(side.."LowerArm") or rig:FindFirstChild(side.." Arm")
+		local leg=rig:FindFirstChild(side.."Foot") or rig:FindFirstChild(side.." Leg")
 		if arm then
-			piece(arm,"Exposed hand",V(1.015,.36,1.015),CFrame.new(0,-.82,0),person.Skin,nil,Enum.Material.SmoothPlastic)
-			piece(arm,"Tailored shirt cuff",V(1.025,.15,1.025),CFrame.new(0,-.59,0),person.Shirt:Lerp(C(255,255,255),.13))
+			piece(arm,"Exposed hand",V(arm.Size.X*1.01,.15,arm.Size.Z*1.01),CFrame.new(0,-arm.Size.Y*.44,0),person.Skin,nil,Enum.Material.SmoothPlastic)
+			piece(arm,"Tailored shirt cuff",V(arm.Size.X*1.025,.15,arm.Size.Z*1.025),CFrame.new(0,-arm.Size.Y*.35,0),person.Shirt:Lerp(C(255,255,255),.13))
 		end
 		if leg then
-			piece(leg,"Leather boot shaft",V(1.025,.42,1.025),CFrame.new(0,-.72,0),boot,nil,Enum.Material.Leather)
-			piece(leg,"Rounded boot toe",V(1.03,.37,1.28),CFrame.new(0,-.88,-.14),boot,Enum.PartType.Ball,Enum.Material.Leather)
-			piece(leg,"Boot welt",V(1.04,.07,1.21),CFrame.new(0,-1.02,-.08),C(104,77,45),nil,Enum.Material.Leather)
-			piece(leg,"Boot heel",V(.85,.12,.4),CFrame.new(0,-1.08,.28),C(37,30,25))
+			piece(leg,"Leather boot shaft",V(1.025,.42,1.025),CFrame.new(0,0,0),boot,nil,Enum.Material.Leather)
+			piece(leg,"Rounded boot toe",V(1.03,.37,1.28),CFrame.new(0,-.1,-.14),boot,Enum.PartType.Ball,Enum.Material.Leather)
+			piece(leg,"Boot welt",V(1.04,.07,1.21),CFrame.new(0,-leg.Size.Y*.5,-.08),C(104,77,45),nil,Enum.Material.Leather)
+			piece(leg,"Boot heel",V(.85,.12,.4),CFrame.new(0,-leg.Size.Y*.5,.28),C(37,30,25))
 			piece(leg,"Pressed trouser seam",V(.022,1.5,.018),CFrame.new(0,.18,-.515),person.Pants:Lerp(C(210,200,170),.16))
 		end
 	end

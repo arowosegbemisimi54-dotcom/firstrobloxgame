@@ -1,4 +1,4 @@
--- Local story chapter. Uses the existing isolated R6 scene; no shared-world rewards.
+-- Local story chapter. Uses the existing isolated R15 scene; no shared-world rewards.
 local RunService=game:GetService("RunService")
 local Input=game:GetService("UserInputService")
 local Actions=game:GetService("ContextActionService")
@@ -6,6 +6,7 @@ local Lighting=game:GetService("Lighting")
 local Rules=require(game:GetService("ReplicatedStorage"):WaitForChild("GameShared").EscapeRules)
 local Props=require(script.Parent.EscapeProps)
 local Audio=require(script.Parent.EscapeAudio)
+local Motion=require(script.Parent.CharacterMotion)
 local Escape={}
 function Escape.prepare(ctx)
  local props=Props.build(ctx)
@@ -43,6 +44,10 @@ function Escape.start(ctx)
  local yaw=math.pi
  local pitch=.12
  local firstPerson=false
+ local driveOrbit=0
+ local drivePitch=.3
+ local driveZoom=19
+ local frameDt=1/60
  local looking=false
  local originalMouse=Input.MouseBehavior
  local originalIcon=Input.MouseIconEnabled
@@ -62,14 +67,7 @@ function Escape.start(ctx)
  local resultPanel
  local function positionVehicle(vehicle,pos,angle) vehicle:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0)) end
  local function pose(person,pos,angle,walk,seated)
-  person.rig:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0))
-  local swing=math.sin(elapsed*9)*walk*.55
-  ctx.setJoint(person,"LeftHip",CFrame.Angles(seated and math.pi/2 or swing,0,0))
-  ctx.setJoint(person,"RightHip",CFrame.Angles(seated and math.pi/2 or -swing,0,0))
-  ctx.setJoint(person,"LeftShoulder",CFrame.Angles(seated and .9 or -swing*.65,0,0))
-  ctx.setJoint(person,"RightShoulder",CFrame.Angles(seated and .9 or swing*.65,0,0))
-  ctx.setJoint(person,"Neck",CFrame.new())
-  if person.face then person.face(elapsed,false,true) end
+  Motion.pose(person,origin,pos,angle,frameDt,seated,elapsed)
  end
  local function vanish(person)
   -- Keep the seated crew inside the opaque cargo compartment, not outside the scene.
@@ -78,7 +76,7 @@ function Escape.start(ctx)
  local function seatHero()
   local seat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.8)
   hero.rig:PivotTo(seat)
-  for _,side in {"Left","Right"} do ctx.setJoint(hero,side.."Hip",CFrame.Angles(math.pi/2,0,0)); ctx.setJoint(hero,side.."Shoulder",CFrame.Angles(.95,0,0)) end
+  for _,side in {"Left","Right"} do ctx.setJoint(hero,side.."Hip",CFrame.Angles(1.35,0,0)); ctx.setJoint(hero,side.."Knee",CFrame.Angles(-1.35,0,0)); ctx.setJoint(hero,side.."Elbow",CFrame.Angles(.55,0,0)); ctx.setJoint(hero,side.."Shoulder",CFrame.Angles(1,0,0)) end
  end
  local function doors(driver,passenger,cargo)
   vanCF=ext.van:GetPivot()
@@ -120,15 +118,20 @@ function Escape.start(ctx)
  bind("Brake",{Enum.KeyCode.Space,Enum.KeyCode.ButtonL2},key("brake"),true,"Brake",UDim2.fromScale(.84,.84))
  bind("Throttle",{Enum.KeyCode.ButtonR2},key("forward"),false)
  bind("Interact",{Enum.KeyCode.E,Enum.KeyCode.ButtonX},function(s) if s==Enum.UserInputState.Begin then interact() end end,true,"Pay",UDim2.fromScale(.84,.69))
- bind("View",{Enum.KeyCode.V,Enum.KeyCode.ButtonR3},function(s) if s==Enum.UserInputState.Begin and state.phase=="walk" then firstPerson=not firstPerson end end,true,"View",UDim2.fromScale(.84,.54))
+ bind("View",{Enum.KeyCode.V,Enum.KeyCode.ButtonR3},function(s) if s==Enum.UserInputState.Begin and (state.phase=="walk" or state.phase=="drive") then firstPerson=not firstPerson end end,true,"View",UDim2.fromScale(.84,.54))
  bind("MoveStick",{Enum.KeyCode.Thumbstick1},function(s,input) moveStick=s==Enum.UserInputState.End and V(0,0,0) or input.Position end,false)
  bind("LookStick",{Enum.KeyCode.Thumbstick2},function(s,input) lookStick=s==Enum.UserInputState.End and V(0,0,0) or input.Position end,false)
  table.insert(connections,Input.InputBegan:Connect(function(input,processed) if not processed and input.UserInputType==Enum.UserInputType.MouseButton2 then looking=true end end))
  table.insert(connections,Input.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton2 then looking=false end end))
  table.insert(connections,Input.InputChanged:Connect(function(input,processed)
-  if state.phase~="walk" then return end
-  if input.UserInputType==Enum.UserInputType.MouseMovement and (looking or firstPerson) then yaw-=input.Delta.X*.004; pitch=math.clamp(pitch+input.Delta.Y*.003,-.6,.65)
-  elseif input.UserInputType==Enum.UserInputType.Touch and not processed and input.Position.X>root.AbsoluteSize.X*.4 then yaw-=input.Delta.X*.004; pitch=math.clamp(pitch+input.Delta.Y*.003,-.6,.65) end
+  if state.phase~="walk" and state.phase~="drive" then return end
+  if input.UserInputType==Enum.UserInputType.MouseWheel and state.phase=="drive" then driveZoom=math.clamp(driveZoom-input.Position.Z*2,11,32) end
+  local dragging=input.UserInputType==Enum.UserInputType.MouseMovement and (looking or firstPerson)
+   or (input.UserInputType==Enum.UserInputType.Touch and not processed and input.Position.X>root.AbsoluteSize.X*.4)
+  if dragging then
+   if state.phase=="drive" then driveOrbit-=input.Delta.X*.004; drivePitch=math.clamp(drivePitch+input.Delta.Y*.003,-.22,1.1)
+   else yaw-=input.Delta.X*.004; pitch=math.clamp(pitch+input.Delta.Y*.003,-.6,.65) end
+  end
  end))
  local function clear()
   if ended then return end; ended=true
@@ -143,7 +146,7 @@ function Escape.start(ctx)
   for i,police in props.police do police.x=195-i*25; police.z=140 end
   state.phase="drive"; state.time=0; title.Visible=false; subtitle.Visible=false
   objective.Visible=true; objective.Text="Lose the remaining local patrol units and reach the safehouse."
-  hint.Text="WASD / stick · Drive   Space / LT · Brake"
+  hint.Text="WASD / stick · Drive   Drag / right stick · Look   V · Cabin"
   audio.cue("engine"); audio.cue("siren")
  end
  local function finishMission(result)
@@ -227,7 +230,7 @@ function Escape.start(ctx)
  end
  table.insert(connections,RunService.RenderStepped:Connect(function(rawDt)
   if ended then return end
-  local dt=math.min(rawDt,.05); elapsed+=dt; shake=math.max(0,shake-dt*.012)
+  local dt=math.min(rawDt,.05); frameDt=dt; elapsed+=dt; shake=math.max(0,shake-dt*.012)
   Rules.advance(state,dt)
   for i=2,#ctx.actors do local actor=ctx.actors[i]; if actor.face then actor.face(elapsed,false,true) end; ctx.setJoint(actor,"Neck",CFrame.Angles(0,math.sin(elapsed*.5+i)*.15,0)) end
   for _,police in props.police do police.light.Brightness=math.sin(elapsed*12)>0 and 3 or .2 end
@@ -295,9 +298,18 @@ function Escape.start(ctx)
    local result=Rules.mission(mission,car,nearest,dt)
    if mission.lost then audio.stop("siren"); objective.Text="Patrol lost. Reach OLD MOTOR DEPOT and stop in the driveway." end
    local distance=math.floor(math.sqrt((car.x-Rules.destination.x)^2+(car.z-Rules.destination.z)^2))
-   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  Space / LT: brake",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
+   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  V: view · Drag: look",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
    audio.engine(car.speed)
-   local target=V(car.x,3,car.z); view(target+V(math.sin(car.yaw)*19,8,math.cos(car.yaw)*19),target+V(-math.sin(car.yaw)*9,0,-math.cos(car.yaw)*9),ctx.reducedMotion() and 65 or 65+math.abs(car.speed)*.08,dt,true)
+   driveOrbit-=lookStick.X*dt*2; drivePitch=math.clamp(drivePitch-lookStick.Y*dt,-.22,1.1)
+   Input.MouseBehavior=looking and Enum.MouseBehavior.LockCurrentPosition or originalMouse
+   local target=V(car.x,3.8,car.z); local angle=car.yaw+driveOrbit
+   if firstPerson then
+    local eye=(ext.van:GetPivot()*CFrame.new(-1.35,4.65,-4.1)).Position-origin
+    view(eye,eye+V(-math.sin(angle)*10,-drivePitch*5,-math.cos(angle)*10),74,dt,false)
+   else
+    local radius=driveZoom*math.cos(drivePitch)
+    view(target+V(math.sin(angle)*radius,math.max(1.2,math.sin(drivePitch)*driveZoom),math.cos(angle)*radius),target,ctx.reducedMotion() and 65 or 65+math.abs(car.speed)*.08,dt,true)
+   end
    if result then finishMission(result) end
   end
  end))
