@@ -1,0 +1,11 @@
+# Local Rojo build outputs and Studio autosaves
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxm
+*.rbxmx
+*.lock
+build/
+__pycache__/
+.DS_Store
