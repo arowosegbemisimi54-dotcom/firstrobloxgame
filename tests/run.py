@@ -9,6 +9,10 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 suites = {
+    'character': {
+        '-- INSERT_CATALOG': 'src/shared/CharacterCatalog.luau',
+        '-- INSERT_CHARACTER_SERVER': 'src/server/CharacterService.server.luau',
+    },
     'party': {
         '-- INSERT_RULES': 'src/shared/PartyRules.luau',
         '-- INSERT_SERVER': 'src/server/PartyService.server.luau',

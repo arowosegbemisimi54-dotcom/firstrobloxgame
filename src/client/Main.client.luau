@@ -10,6 +10,11 @@ local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("GameShared")
 local Config = require(shared:WaitForChild("Config"))
 local DesertScene = require(script.Parent.DesertScene)
+local CharacterFlow = require(script.Parent.CharacterFlow)
+local Wardrobe = require(script.Parent.Wardrobe)
+local characterRemote = shared:WaitForChild("CharacterRequest")
+local characterProfile
+local flowCleanup
 local remote = shared:WaitForChild("MenuAction")
 local warm = Color3.fromRGB(232,211,175)
 local muted = Color3.fromRGB(164,155,136)
@@ -65,7 +70,7 @@ ContextActionService:BindActionAtPriority("MenuBlocksMovement",function() return
 local camera = workspace.CurrentCamera
 while not camera do workspace:GetPropertyChangedSignal("CurrentCamera"):Wait(); camera = workspace.CurrentCamera end
 local originalCamera = {kind=camera.CameraType, cframe=camera.CFrame, fov=camera.FieldOfView}
-local scene, angle, state = nil, 0, "opening"
+local scene, angle, state = nil, 0, "creation"
 local shade
 local bars = {}
 local party = {leader=player.UserId,capacity=1,members={{id=player.UserId,name=player.DisplayName}}}
@@ -73,7 +78,7 @@ local renderConnection = RunService.RenderStepped:Connect(function(dt)
 	local current = workspace.CurrentCamera
 	if not current then return end
 	current.CameraType = Enum.CameraType.Scriptable
-	if scene and state ~= "opening" then
+	if scene and state ~= "opening" and state ~= "creation" then
 		scene.update(dt, true, not reducedMotion)
 		if not reducedMotion then angle -= math.min(dt,.1) * (state == "cinematic" and .055 or .012) end
 		local focus = scene.focus
@@ -88,27 +93,31 @@ end
 -- Scale a fixed design canvas to the viewport, preserving touch targets where space permits.
 local menu = make("CanvasGroup",{Size=UDim2.fromOffset(1000,600),AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),BackgroundTransparency=1,Visible=false,GroupTransparency=1},root)
 local scale = make("UIScale",{},menu)
+local home = frame(menu,UDim2.new(),UDim2.fromScale(1,1))
+local wardrobe
 local function resize()
 	local size = root.AbsoluteSize
 	scale.Scale = math.min(size.X/1080,size.Y/660,1.4)
 end
 resize()
-local header = text(menu,"MHIDE  /  AN ORIGINAL EXPERIENCE",UDim2.fromOffset(24,12),UDim2.fromOffset(660,24),12,muted)
+local header = text(home,"MHIDE  /  AN ORIGINAL EXPERIENCE",UDim2.fromOffset(24,12),UDim2.fromOffset(660,24),12,muted)
 header.Font = Enum.Font.SpecialElite
-local titleLabel = text(menu,Config.Title,UDim2.fromOffset(24,49),UDim2.fromOffset(730,65),52,warm)
+local titleLabel = text(home,Config.Title,UDim2.fromOffset(24,49),UDim2.fromOffset(730,65),52,warm)
 titleLabel.Font = Enum.Font.SpecialElite
-text(menu,"EVERY CHOICE LEAVES A MARK.",UDim2.fromOffset(27,119),UDim2.fromOffset(550,30),13,accent)
-make("Frame",{Position=UDim2.fromOffset(26,168),Size=UDim2.fromOffset(46,2),BorderSizePixel=0,BackgroundColor3=accent},menu)
-local panel = make("Frame",{Position=UDim2.fromOffset(420,184),Size=UDim2.fromOffset(550,340),BackgroundColor3=Color3.fromRGB(23,23,21),BackgroundTransparency=.13,BorderSizePixel=0,Visible=false,Active=true,ZIndex=4},menu)
+text(home,"EVERY CHOICE LEAVES A MARK.",UDim2.fromOffset(27,119),UDim2.fromOffset(550,30),13,accent)
+make("Frame",{Position=UDim2.fromOffset(26,168),Size=UDim2.fromOffset(46,2),BorderSizePixel=0,BackgroundColor3=accent},home)
+local panel = make("Frame",{Position=UDim2.new(),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,Active=true,ZIndex=4},menu)
 make("UICorner",{CornerRadius=UDim.new(0,8)},panel)
-local panelBody = frame(panel,UDim2.fromOffset(24,56),UDim2.fromOffset(502,265))
-local panelTitle = text(panel,"",UDim2.fromOffset(24,12),UDim2.fromOffset(440,34),22)
+local panelBody = frame(panel,UDim2.fromOffset(145,155),UDim2.fromOffset(502,360))
+local panelTitle = text(panel,"",UDim2.fromOffset(28,78),UDim2.fromOffset(550,45),30)
 local activePanel, refreshPanel = nil, nil
-local function closePanel() panel.Visible=false; activePanel=nil; refreshPanel=nil end
-button(panel,"×",UDim2.fromOffset(498,6),UDim2.fromOffset(44,44),closePanel)
+local function closePanel() panel.Visible=false; activePanel=nil; refreshPanel=nil; home.Visible=true end
+button(panel,"← Back",UDim2.fromOffset(24,12),UDim2.fromOffset(170,48),closePanel)
 local function openPanel(name)
 	panelBody:ClearAllChildren()
 	panel.Visible, panelTitle.Text, activePanel = true, name, name
+	home.Visible=false
+	if wardrobe then wardrobe.close() end
 end
 local showPlay, showInvite
 local firstMenuButton
@@ -178,53 +187,47 @@ local function showOptions()
 	text(panelBody,"Select with mouse, touch, or gamepad A. Use the directional pad to navigate.\n\nInvite players in this server, then choose Solo, Duo, or a squad of up to four under Play.",UDim2.new(),UDim2.fromOffset(490,175),17,muted)
 	button(panelBody,"←  Return to mode selection",UDim2.fromOffset(0,200),UDim2.fromOffset(490,44),returnToOpening).TextSize=17
 end
+local homeButtons={}
 for index,item in {{"Play",showPlay},{"Invite",showInvite},{"Shop",showShop},{"Settings",showSettings},{"Options",showOptions}} do
-	local b = button(menu,item[1],UDim2.fromOffset(28,190+(index-1)*56),UDim2.fromOffset(245,48),item[2])
-	b.TextSize=24
-	b.BackgroundColor3=Color3.fromRGB(166,135,90)
-	b.BackgroundTransparency=.22
-	b.BorderSizePixel=0
-	b.TextColor3=Color3.fromRGB(250,234,204)
-	make("UIPadding",{PaddingLeft=UDim.new(0,16)},b)
-	make("UICorner",{CornerRadius=UDim.new(0,3)},b)
-	make("UIStroke",{ApplyStrokeMode=Enum.ApplyStrokeMode.Border,Color=Color3.fromRGB(217,185,131),Thickness=1,Transparency=.6},b)
-	make("UIGradient",{Rotation=8,Color=ColorSequence.new(Color3.fromRGB(214,190,143),Color3.fromRGB(116,88,55))},b)
-	local grain=Random.new(index*71)
-	for _=1,14 do
-		make("Frame",{Position=UDim2.fromScale(grain:NextNumber(.02,.97),grain:NextNumber(.05,.95)),Size=UDim2.fromOffset(grain:NextInteger(1,5),1),BackgroundColor3=Color3.fromRGB(73,54,35),BackgroundTransparency=.65,BorderSizePixel=0,Active=false},b)
-	end
-	b.MouseEnter:Connect(function() tween(b,.15,{BackgroundTransparency=.06}) end)
-	b.MouseLeave:Connect(function() tween(b,.15,{BackgroundTransparency=.22}) end)
-	if index == 1 then firstMenuButton=b end
+	local offsets={{40,202},{82,263},{28,334},{106,397},{58,455}}
+	local b=button(home,item[1],UDim2.fromOffset(offsets[index][1],offsets[index][2]),UDim2.fromOffset(220,48),item[2])
+	b.TextSize=index==1 and 29 or 24
+	homeButtons[index]=b
+	if index==1 then firstMenuButton=b end
 end
-local backButton = button(menu,"← Back",UDim2.fromOffset(28,486),UDim2.fromOffset(245,44),returnToOpening)
+local backButton = button(home,"← Back",UDim2.fromOffset(28,510),UDim2.fromOffset(245,44),returnToOpening)
 backButton.TextSize=18
-local profile = make("ImageButton",{Position=UDim2.fromOffset(302,202),Size=UDim2.fromOffset(64,64),BackgroundColor3=Color3.fromRGB(43,40,32),BackgroundTransparency=.2,Image="",AutoButtonColor=false},menu)
+local profile = make("ImageButton",{Position=UDim2.fromOffset(302,202),Size=UDim2.fromOffset(64,64),BackgroundColor3=Color3.fromRGB(43,40,32),BackgroundTransparency=.2,Image="",AutoButtonColor=false},home)
 make("UICorner",{CornerRadius=UDim.new(1,0)},profile)
 local ring = make("UIStroke",{Color=accent,Thickness=1.4,Transparency=.2},profile)
 local pulse = TweenService:Create(ring,TweenInfo.new(2,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Transparency=.75})
 pulse:Play()
 profilePulse=pulse
+local ui={make=make,text=text,button=button,click=click,notify=notify}
+wardrobe=Wardrobe.mount(menu,ui,characterRemote,function()
+	home.Visible=true
+	GuiService.SelectedObject=profile
+end,function(value) characterProfile=value end,function() return reducedMotion end)
 profile.Activated:Connect(function()
-	click(); openPanel("YOUR IDENTITY"); refreshPanel=nil
-	make("ImageLabel",{Image=profile.Image,BackgroundTransparency=1,Size=UDim2.fromOffset(90,90)},panelBody)
-	text(panelBody,player.DisplayName,UDim2.fromOffset(110,10),UDim2.fromOffset(380,40),24)
-	text(panelBody,"Your Roblox avatar is your starting look.\n\nUnlockable outfits and customization will be added with missions and the shop.",UDim2.fromOffset(0,110),UDim2.fromOffset(490,140),17,muted)
+	click()
+	if not characterProfile then return end
+	closePanel(); home.Visible=false
+	wardrobe.open(characterProfile)
 end)
 task.spawn(function()
 	local ok,url = pcall(function() return Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size180x180) end)
 	if ok and profile.Parent then profile.Image=url end
 end)
-local credit = text(menu,"Developed by MHIDE",UDim2.fromOffset(28,552),UDim2.fromOffset(350,25),13,muted)
-local inspiration = text(menu,"Be Inspired",UDim2.fromOffset(28,574),UDim2.fromOffset(240,22),14,warm)
+local credit = text(home,"Developed by MHIDE",UDim2.fromOffset(28,552),UDim2.fromOffset(350,25),13,muted)
+local inspiration = text(home,"Be Inspired",UDim2.fromOffset(28,574),UDim2.fromOffset(240,22),14,warm)
 inspiration.TextXAlignment=Enum.TextXAlignment.Left
-local footer = text(menu,"STORY MODE  /  THE DESERT",UDim2.fromOffset(570,574),UDim2.fromOffset(400,20),10,muted)
+local footer = text(home,"STORY MODE  /  THE DESERT",UDim2.fromOffset(570,574),UDim2.fromOffset(400,20),10,muted)
 resize = function()
 	local size = root.AbsoluteSize
 	local narrow = size.X < size.Y
 	menu.Size = UDim2.fromOffset(narrow and 600 or 1000,narrow and 710 or 600)
 	scale.Scale = math.min(size.X/(narrow and 640 or 1080),size.Y/(narrow and 750 or 660),1.4)
-	panel.Position = UDim2.fromOffset(narrow and 25 or 420,184)
+	panelBody.Position = UDim2.fromOffset(narrow and 45 or 145,155)
 	titleLabel.Size = UDim2.fromOffset(narrow and 550 or 730,65)
 	titleLabel.TextSize = narrow and 44 or 52
 	credit.Position = UDim2.fromOffset(28,narrow and 640 or 552)
@@ -283,18 +286,31 @@ end)
 Players.PlayerAdded:Connect(function() if activePanel=="INVITE YOUR CREW" then showInvite() end end)
 Players.PlayerRemoving:Connect(function() task.defer(function() if activePanel=="INVITE YOUR CREW" then showInvite() end end) end)
 remote:FireServer("sync")
-if not game:IsLoaded() then game.Loaded:Wait() end
-task.wait(Config.IntroDelay)
-for _,b in {storyButton,onlineButton} do
-	b.Visible=true
-	local target=b.Position
-	b.Position=target+UDim2.fromOffset(0,8)
-	click(); tween(b,.35,{TextTransparency=0,Position=target})
-	task.wait(Config.ChoiceStagger)
+local function revealModes(value)
+	characterProfile=value
+	state="opening"
+	opening.Visible=true
+	task.spawn(function()
+		task.wait(Config.IntroDelay)
+		for _,b in {storyButton,onlineButton} do
+			b.Visible=true
+			local target=b.Position
+			b.Position=target+UDim2.fromOffset(0,8)
+			click(); tween(b,.35,{TextTransparency=0,Position=target})
+			task.wait(Config.ChoiceStagger)
+		end
+		if game:GetService("UserInputService").GamepadEnabled and state=="opening" then GuiService.SelectedObject=storyButton end
+	end)
 end
-if game:GetService("UserInputService").GamepadEnabled and state == "opening" then GuiService.SelectedObject=storyButton end
+opening.Visible=false
+if not game:IsLoaded() then game.Loaded:Wait() end
+local profileOK,savedProfile=pcall(function() return characterRemote:InvokeServer("get") end)
+if profileOK and savedProfile.ok and savedProfile.profile then revealModes(savedProfile.profile)
+else flowCleanup=CharacterFlow.start(root,ui,characterRemote,revealModes) end
 script.Destroying:Connect(function()
 	renderConnection:Disconnect(); pulse:Cancel()
+	wardrobe.destroy()
+	if flowCleanup then flowCleanup() end
 	ContextActionService:UnbindAction("MenuBlocksMovement")
 	if scene then scene.destroy() end
 	local current=workspace.CurrentCamera
