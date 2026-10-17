@@ -8,6 +8,7 @@ local Cast=require(script.Parent.DinerCast)
 local Lighting=game:GetService("Lighting")
 local Broadcast=require(script.Parent.DinerBroadcast)
 local Exterior=require(script.Parent.DinerExterior)
+local Escape=require(script.Parent.DinerEscape)
 local Diner={}
 
 function Diner.create(profile)
@@ -22,7 +23,9 @@ function Diner.create(profile)
 	local effectSnapshot={}
 	local blank=Instance.new("HumanoidDescription")
 	local template
+	local preparedEscape
 	local function cleanup()
+		if preparedEscape then preparedEscape.destroy(); preparedEscape=nil end
 		if template then template:Destroy(); template=nil end
 		if lightingSnapshot then
 			for key,value in lightingSnapshot do Lighting[key]=value end
@@ -88,6 +91,7 @@ function Diner.create(profile)
 					actor(name,npc,spec[3],spec[4],spec[2],spec[1]+1,face)
 				end
 				template:Destroy(); template=nil
+				preparedEscape=Escape.prepare({model=model,origin=origin,exterior=exterior,actors=actors})
 				model.Parent=workspace
 			end,debug.traceback)
 			blank:Destroy()
@@ -111,14 +115,13 @@ function Diner.create(profile)
 			local function resize() controlScale.Scale=math.min(root.AbsoluteSize.X/480,1) end
 			local resizeConnection=root:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize); resize()
 			local connection
+			local stopEscape
 			local function finish()
 				if finished then return end
 				finished=true; Timeline.skip(timeline)
 				if connection then connection:Disconnect() end
-				resizeConnection:Disconnect(); hud:Destroy(); cleanup(); onFinish()
+				resizeConnection:Disconnect(); hud:Destroy(); if stopEscape then stopEscape(); stopEscape=nil end; cleanup(); onFinish()
 			end
-			ui.navButton(controls,"Next shot →",UDim2.fromOffset(0,0),UDim2.fromOffset(210,44),function() Timeline.next(timeline); if timeline.done then finish() end end)
-			ui.navButton(controls,"Skip opening",UDim2.fromOffset(230,0),UDim2.fromOffset(210,44),finish)
 			local function view(pos,target) return CFrame.lookAt(origin+pos,origin+target) end
 			local radioWide=view(Vector3.new(7,5.8,0),Vector3.new(16,4.3,-6))
 			local radioClose=view(Vector3.new(9.5,4.9,-3),Vector3.new(14,4.45,-6))
@@ -134,7 +137,11 @@ function Diner.create(profile)
 			connection=RunService.RenderStepped:Connect(function(dt)
 				elapsed+=dt
 				Timeline.advance(timeline,dt)
-				if timeline.done then finish(); return end
+				if timeline.done then
+					connection:Disconnect(); resizeConnection:Disconnect(); hud:Destroy()
+					stopEscape=Escape.start({prepared=preparedEscape,model=model,origin=origin,exterior=exterior,actors=actors,root=root,ui=ui,reducedMotion=reducedMotion,setJoint=setJoint,onFinish=finish})
+					return
+				end
 				local shot=shots[timeline.shot]
 				local t=math.clamp(timeline.elapsed/Timeline.durations[timeline.shot],0,1)
 				local from,to,fov=shot[1],shot[2],shot[3]

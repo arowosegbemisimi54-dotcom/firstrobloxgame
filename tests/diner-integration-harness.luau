@@ -7,6 +7,8 @@ function VectorMeta.__add(a,b) return Vector.new(a.X+b.X,a.Y+b.Y,a.Z+b.Z) end
 function VectorMeta.__sub(a,b) return Vector.new(a.X-b.X,a.Y-b.Y,a.Z-b.Z) end
 function VectorMeta.__unm(a) return Vector.new(-a.X,-a.Y,-a.Z) end
 function VectorMeta.__div(a,b) return Vector.new(a.X/b,a.Y/b,a.Z/b) end
+function Vector:Lerp(b,t) return self+(b-self)*t end
+function VectorMeta.__mul(a,b) return Vector.new(a.X*b,a.Y*b,a.Z*b) end
 function Vector:Dot(b) return self.X*b.X+self.Y*b.Y+self.Z*b.Z end
 function Vector:Cross(b) return Vector.new(self.Y*b.Z-self.Z*b.Y,self.Z*b.X-self.X*b.Z,self.X*b.Y-self.Y*b.X) end
 function VectorMeta.__index(a,key)
@@ -19,6 +21,7 @@ local Vector2={new=function(x,y) return {X=x,Y=y} end}
 local transform={}
 transform.__index=transform
 function transform.__mul(a) return a end
+function transform:ToObjectSpace(other) return other end
 function transform:VectorToWorldSpace(v) return v end
 local function cf(position) return setmetatable({Position=type(position)=="table" and position or Vector.new(0,0,0)},transform) end
 function transform:Lerp(other) return other end
@@ -28,6 +31,7 @@ local color={Lerp=function(self) return self end}
 local Color3={new=function() return color end,fromRGB=function() return color end}
 local UDim={new=function(scale,offset) return {Scale=scale,Offset=offset} end}
 local UDim2={new=function(xs,xo,ys,yo) return {X=UDim.new(xs,xo),Y=UDim.new(ys,yo)} end,fromOffset=function(x,y) return {X=UDim.new(0,x),Y=UDim.new(0,y)} end,fromScale=function(x,y) return {X=UDim.new(x,0),Y=UDim.new(y,0)} end}
+local NumberRange={new=function(...) return {...} end}
 local NumberSequence={new=function(...) return {...} end}
 local NumberSequenceKeypoint={new=function(...) return {...} end}
 local ColorSequence=NumberSequence
@@ -52,6 +56,8 @@ function meta.__newindex(self,key,value)
 	end
 	self.values[key]=value
 end
+function methods:Emit(count) self.emitted=(self.emitted or 0)+count end
+function methods:GetPivot() return self.lastPivot or self.WorldPivot or cf() end
 function methods:Play() self.IsPlaying=true; self.plays=(self.plays or 0)+1 end
 function methods:Pause() self.IsPlaying=false end
 function methods:Stop() self.IsPlaying=false end
@@ -64,7 +70,7 @@ function methods:Destroy()
 	self.Parent=nil; self.destroyed=true
 end
 local Instance={new=function(kind)
-	local obj=setmetatable({values={ClassName=kind},children={}},meta)
+	local obj=setmetatable({values={ClassName=kind,Name=kind},children={}},meta)
 	table.insert(objects,obj); return obj
 end}
 local seed=817
@@ -96,7 +102,7 @@ local function signal()
  local s={}
  function s:Connect(callback)
   self.callback=callback
-  local c={}; function c:Disconnect() s.callback=nil end
+  local c={}; function c:Disconnect() if s.callback==callback then s.callback=nil end end
   return c
  end
  return s
@@ -122,17 +128,24 @@ local lighting=Instance.new("Lighting")
 lighting.ClockTime=17.7; lighting.Brightness=2; lighting.GeographicLatitude=41; lighting.FogStart=120; lighting.FogEnd=850; lighting.GlobalShadows=false; lighting.ExposureCompensation=.1
 lighting.Ambient=color; lighting.OutdoorAmbient=color; lighting.ColorShift_Top=color; lighting.ColorShift_Bottom=color
 local grade=Instance.new("ColorCorrectionEffect"); grade.Name="MenuSunset"; grade.Enabled=true; grade.Parent=lighting
-local services={Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit"} end}}
+local actions={}
+local actionService={}
+function actionService:BindActionAtPriority(name,callback) actions[name]=callback end
+function actionService:UnbindAction(name) actions[name]=nil end
+function actionService:SetTitle() end
+function actionService:SetPosition() end
+local inputService={InputBegan=signal(),InputEnded=signal(),InputChanged=signal(),MouseBehavior="Default",MouseIconEnabled=true}
+local services={ContextActionService=actionService,UserInputService=inputService,Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit",EscapeRules="escapeRules"} end}}
 local game={GetService=function(_,name) return services[name] end}
 local workspace=Instance.new("Workspace")
-workspace.CurrentCamera={}
+workspace.CurrentCamera={CFrame=cf(),FieldOfView=65}
 local Timeline=(function()
 -- INSERT_TIMELINE
 end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -164,6 +177,18 @@ end)()
 modules.exterior=(function()
 -- INSERT_EXTERIOR
 end)()
+modules.escapeRules=(function()
+-- INSERT_ESCAPE_RULES
+end)()
+modules.escapeAudio=(function()
+-- INSERT_ESCAPE_AUDIO
+end)()
+modules.escapeProps=(function()
+-- INSERT_ESCAPE_PROPS
+end)()
+modules.escape=(function()
+-- INSERT_ESCAPE
+end)()
 local Diner=(function()
 -- INSERT_DINER
 end)()
@@ -191,17 +216,19 @@ check(faceCount==6,"all six original NPCs have locally authored animated faces")
 local parts=0
 local counts={}
 for _,obj in objects do
- if obj:IsA("BasePart") then parts+=1 end
- if obj.Name then counts[obj.Name]=(counts[obj.Name] or 0)+1 end
+ if obj:IsA("BasePart") and not obj.destroyed then parts+=1 end
+ if obj.Name and not obj.destroyed then counts[obj.Name]=(counts[obj.Name] or 0)+1 end
 end
 local exteriorParts=0
+local escapeParts=0
+for _,obj in objects do if obj.Name=="Highway Four escape cast and props" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then escapeParts+=1 end end end end
 for _,obj in objects do if obj.Name=="Sunset Diner roadside block" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then exteriorParts+=1 end end end end
-check(parts-exteriorParts<2400 and exteriorParts<1800,"interior and roadside block stay within separate geometry budgets")
+check(parts-exteriorParts-escapeParts<2400 and exteriorParts<2100 and escapeParts<800,"interior and roadside block stay within separate geometry budgets")
 check(counts["Matte black getaway panel van"]==1 and counts["Diner glass entrance"]==1 and counts["Weathered parking court"]==1,"exterior includes getaway van, opening entrance and parking court")
 check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
 check(counts["Walnut diner radio"]==1 and not counts["CRT glass screen"],"broadcast uses one countertop radio and no television")
 check(counts["Upright refrigerator"]==1 and counts["Sink dark basin"]==2 and counts["Stainless extractor hood"]==1,"compact kitchen includes fridge, sinks and extraction")
-check(counts["Sculpted nose"]==6 and counts["Visible teeth"]==6,"all NPCs have visible three-dimensional facial features")
+check(counts["Sculpted nose"]==12 and counts["Visible teeth"]==12,"diner, crew and officers have visible three-dimensional facial features")
 check(counts["Booth side window"]==4,"each booth bay has a side window")
 check(counts["Painted landscape"]==2 and counts["Hanging opal globe"]==12,"original paintings and suspended lights are present")
 check(counts["Ketchup bottle"]==7 and counts["Salt shaker"]==7,"all booth tables and counter stations have full condiment sets")
@@ -232,8 +259,7 @@ for _,person in cast do
  for _,joint in person:GetDescendants() do if joint.ClassName=="Motor6D" and joint.Name=="Right Shoulder" and joint.C0~=originalJoints[joint] then posed=true end end
 end
 check(posed,"R6 joint animation path runs without missing-joint errors")
-callbacks["Next shot →"]()
-render.callback(.2)
+render.callback(1.7)
 local pausedPour=false
 local voicesPlaying=0
 local stingers=0
@@ -243,14 +269,14 @@ for _,obj in objects do
  if obj.Name=="News stinger" and (obj.plays or 0)>0 then stingers+=1 end
 end
 check(pausedPour and voicesPlaying==1 and stingers==2,"news entrance pauses pouring and starts one shared narration source with the radio stinger")
-callbacks["Skip opening"]()
-stop()
-check(finishes==1 and render.callback==nil,"skip cleans up once and disconnects camera animation")
-for _,person in cast do assert(person.destroyed,"cast leaked after skip") end
-check(true,"all diner actors destroyed after skip")
-for _,obj in objects do if obj.ClassName=="AudioTextToSpeech" then assert(not obj.IsPlaying and obj.destroyed,"narration leaked after skip") end end
-check(true,"skip stops and destroys narration")
-check(lighting.ClockTime==17.7 and lighting.GeographicLatitude==41 and lighting.FogEnd==850 and lighting.GlobalShadows==false and grade.Enabled==true,"skip restores all overridden menu lighting including disabled booleans")
+check(not callbacks["Next shot →"] and not callbacks["Skip opening"],"story opening has no skip controls")
+stop(); stop()
+check(finishes==1 and render.callback==nil,"external stop cleans up once and disconnects camera animation")
+for _,person in cast do assert(person.destroyed,"cast leaked after stopping") end
+check(true,"all diner actors destroyed after stopping")
+for _,obj in objects do if obj.ClassName=="AudioTextToSpeech" then assert(not obj.IsPlaying and obj.destroyed,"narration leaked after stopping") end end
+check(true,"stopping destroys narration")
+check(lighting.ClockTime==17.7 and lighting.GeographicLatitude==41 and lighting.FogEnd==850 and lighting.GlobalShadows==false and grade.Enabled==true,"stopping restores all overridden menu lighting including disabled booleans")
 local wardrobeRig=rig()
 Outfit.apply(wardrobeRig,{gender="Girl",outfit={Hat="cowboy"}})
 local originalWardrobe=wardrobeRig:FindFirstChild("WesternWardrobe")
@@ -268,7 +294,26 @@ check(not okFailure and render.callback==nil,"loader failure cleans up in reduce
 for _,obj in objects do if obj.ClassName=="ViewportFrame" then assert(obj.destroyed,"loading viewport leaked") end end
 check(true,"loading geometry is destroyed after success and failure")
 local natural=Diner.create({gender="Boy",outfit={Hat="none"}}); natural.prepare()
-natural.play(root,ui,function() finishes+=1 end,function() return true end)
+local stopNatural=natural.play(root,ui,function() finishes+=1 end,function() return true end)
 render.callback(100)
-check(finishes==2 and lighting.ClockTime==17.7 and grade.Enabled==true,"natural cutscene completion also restores menu lighting")
+check(finishes==1 and actions.HighwayFour_Interact~=nil,"radio completion hands off into playable chapter without returning to menu")
+local function frames(n) for _=1,n do assert(render.callback,"chapter lost its frame update"); render.callback(.05) end end
+local function press(name,down) actions["HighwayFour_"..name](name,down and Enum.UserInputState.Begin or Enum.UserInputState.End,{Position=Vector.new(0,0,0)}) end
+press("Interact",true); frames(42)
+local paid=false
+for _,obj in objects do if obj.Name=="Payment hundred dollar bill" and obj.Transparency==0 then paid=true end end
+check(paid,"payment action places the bill before enabling walking")
+press("Left",true); frames(32); press("Left",false)
+press("Forward",true); frames(86); press("Forward",false)
+frames(870)
+local driving=false
+for _,obj in objects do if obj.Name=="Interaction hint" and obj.Text and obj.Text:find("SAFEHOUSE") then driving=true end end
+check(driving,"pay, walk through exit and complete all cinematic beats into driving")
+press("Forward",true); frames(240); press("Forward",false)
+local lost=false
+for _,obj in objects do if obj.Name=="Mission objective" and obj.Text and obj.Text:find("Patrol lost") then lost=true end end
+check(lost,"driving away at speed loses the pursuing patrol")
+stopNatural(); stopNatural()
+check(finishes==2 and render.callback==nil and next(actions)==nil,"chapter teardown disconnects camera and every control binding once")
+check(lighting.ClockTime==17.7 and grade.Enabled==true and inputService.MouseBehavior=="Default","chapter teardown restores menu lighting and mouse behavior")
 print(string.format("%d diner integration checks passed",checks))

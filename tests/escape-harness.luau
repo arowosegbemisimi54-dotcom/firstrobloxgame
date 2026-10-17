@@ -1,0 +1,34 @@
+local Rules=(function()
+-- INSERT_ESCAPE_RULES
+end)()
+local count=0
+local function check(value,message) assert(value,message); count+=1; print("PASS: "..message) end
+local s=Rules.new()
+check(not Rules.exit(s),"unpaid player cannot trigger escape")
+check(Rules.interact(s) and not Rules.interact(s),"payment interaction cannot be duplicated")
+Rules.advance(s,.99); check(not s.paid,"payment requires its full one-second animation")
+Rules.advance(s,.01); check(s.paid and s.phase=="stand","payment completes at one second")
+check(not Rules.exit(s),"exit stays gated until standing is complete")
+Rules.advance(s,1); check(s.phase=="walk" and Rules.exit(s),"walking player can trigger exterior once")
+check(not Rules.exit(s),"cinematic cannot retrigger itself")
+local board
+for _,shot in Rules.shots do if shot.name=="board" then board=shot.duration end end
+check(board==1.5,"crew boarding lasts exactly 1.5 seconds")
+Rules.advance(s,100); check(s.phase=="drive","entire cinematic hands off into driving")
+check(Rules.walkable(0,40) and not Rules.walkable(5,40) and not Rules.walkable(-30,0),"walking respects doorway and booth boundaries")
+check(Rules.drivable(920,175) and not Rules.drivable(850,175),"safehouse driveway is reachable without driving through neighboring buildings")
+local car={x=180,z=140,yaw=-math.pi/2,speed=0}
+for _=1,120 do Rules.drive(car,1,0,false,1/60) end
+check(car.x>220 and car.speed>50,"throttle advances vehicle along its heading")
+for _=1,120 do Rules.drive(car,0,0,true,1/60) end
+check(math.abs(car.speed)<.01,"brake brings vehicle to rest")
+local edge={x=1199.9,z=140,yaw=-math.pi/2,speed=70}
+check(Rules.drive(edge,1,0,false,.05) and edge.x==1199.9,"road boundary blocks vehicle instead of clipping through scenery")
+local mission={clearTime=0,bustTime=0,lost=false}
+local depot={x=920,z=175,speed=0}
+check(not Rules.mission(mission,depot,80,1),"safehouse cannot complete while still pursued")
+Rules.mission(mission,depot,180,3.9); check(not mission.lost,"escape requires sustained distance from patrol")
+check(Rules.mission(mission,depot,180,.1)=="safe","lost patrol plus stopped vehicle at depot completes mission")
+local caught={clearTime=0,bustTime=0,lost=false}
+check(Rules.mission(caught,{x=300,z=140,speed=0},10,4)=="caught","stationary player near patrol can be intercepted")
+print(count.." escape checks passed")

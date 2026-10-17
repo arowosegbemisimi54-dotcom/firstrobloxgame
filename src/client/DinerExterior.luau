@@ -74,7 +74,7 @@ function Exterior.build(parent,origin)
    p("Parked tire",V(.55,r*2,r*2),V(x,r-.7,z),C(28,28,26),Enum.PartType.Cylinder)
    p("Parked hubcap",V(.6,r*1.1,r*1.1),V(x,r-.7,z),metal,Enum.PartType.Cylinder)
   end
-  Cars.build(p,wheel,variant); car.WorldPivot=CFrame.new(origin); car:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,yaw,0)); return car
+  Cars.build(p,wheel,variant); car.WorldPivot=CFrame.new(origin); car:PivotTo(CFrame.new(origin+pos+V(0,.7,0))*CFrame.Angles(0,yaw,0)); return car
  end
  for _,entry in {{1,-68,62,0},{2,-36,109,math.pi},{3,12,109,math.pi},{4,60,62,0},{2,-88,-15,math.pi/2}} do parked(entry[1],V(entry[2],0,entry[3]),entry[4]) end
  -- Service yard obscures the second vehicle from the public lot.
@@ -89,10 +89,15 @@ function Exterior.build(parent,origin)
   return part(name,size,pos,color,nil,shape,van)
  end
  vp("Panel van chassis",V(6,.55,12.5),V(0,.65,0),C(24,25,23))
- vp("Panel van cargo body",V(5.9,5.4,8.2),V(0,3.75,1.7),black)
+ for _,x in {-2.88,2.88} do vp("Panel van cargo side",V(.16,5.4,8.2),V(x,3.75,1.7),black) end
+ vp("Cargo wooden floor",V(5.6,.15,8),V(0,1.2,1.7),C(104,81,51))
+ vp("Cab cargo partition",V(5.6,4.8,.13),V(0,3.7,-2.3),black)
  vp("Rounded panel van roof",V(6,1,12),V(0,6.4,0),black,Enum.PartType.Ball)
- vp("Cab over front",V(5.9,4.9,3.7),V(0,3.5,-4.25),black)
- for _,x in {-1.4,1.4} do vp("Split van windshield",V(2.45,2.05,.1),V(x,4.9,-6.14),C(102,122,121)) end
+ vp("Cab over front",V(5.9,2.3,3.7),V(0,2.2,-4.25),black)
+ for _,x in {-1.4,1.4} do local pane=vp("Split van windshield",V(2.45,2.05,.1),V(x,4.9,-6.14),C(102,122,121)); pane.Material=Enum.Material.Glass; pane.Transparency=.4 end
+ for _,x in {-2.85,2.85} do vp("Cab windshield pillar",V(.18,2.8,.25),V(x,4.8,-6),black) end
+ vp("Cab bench seat",V(4.7,.7,1.5),V(0,2.5,-3.7),C(80,66,47))
+ vp("Dashboard",V(5.3,.5,.8),V(0,3.6,-5.4),C(58,57,48))
  vp("Windshield center bar",V(.14,2.1,.14),V(0,4.9,-6.2),metal)
  for x=-1.05,1.05,.15 do vp("Tall van grille slat",V(.065,2.4,.12),V(x,2.35,-6.19),metal) end
  for _,side in {-1,1} do
@@ -101,12 +106,16 @@ function Exterior.build(parent,origin)
   for _,z in {-3.9,3.9} do vp("Van tire",V(.6,2.5,2.5),V(side*2.8,.55,z),C(24,25,24),Enum.PartType.Cylinder); vp("Van wheel hub",V(.63,1.4,1.4),V(side*2.8,.55,z),metal,Enum.PartType.Cylinder) end
  end
  vp("Van front bumper",V(6.3,.3,.3),V(0,1,-6.4),metal)
- -- Separate animated driver door and rear cargo door.
+ -- Separate animated doors with pivots at their physical hinges.
  local driverDoor=Instance.new("Model"); driverDoor.Name="Van driver door"; driverDoor.Parent=van
- local panel=vp("Driver door panel",V(.1,4.5,2.5),V(-3.01,3.5,-3.25),black); panel.Parent=driverDoor
- local glass=vp("Driver door glass",V(.12,1.5,2.1),V(-3.03,4.7,-3.25),C(102,122,121)); glass.Parent=driverDoor
+ local panel=vp("Driver door panel",V(.1,2.4,2.5),V(-3.01,2.4,-3.25),black); panel.Parent=driverDoor
+ local glass=vp("Driver door glass",V(.12,1.5,2.1),V(-3.03,4.7,-3.25),C(102,122,121)); glass.Parent=driverDoor; glass.Material=Enum.Material.Glass; glass.Transparency=.4
  driverDoor.WorldPivot=CFrame.new(origin+V(-3,1.3,-4.5))
- van.WorldPivot=CFrame.new(origin); van:PivotTo(CFrame.new(origin+V(60,0,-53))*CFrame.Angles(0,-math.pi/2,0))
+ local passengerDoor=driverDoor:Clone(); passengerDoor.Name="Van passenger door"; passengerDoor.Parent=van; passengerDoor:PivotTo(CFrame.new(origin+V(3,1.3,-4.5)));
+ local cargoDoor=Instance.new("Model"); cargoDoor.Name="Van rear cargo door"; cargoDoor.Parent=van
+ local rearPanel=vp("Rear hinged panel",V(5.9,4.9,.12),V(0,3.8,5.86),black); rearPanel.Parent=cargoDoor
+ cargoDoor.WorldPivot=CFrame.new(origin+V(2.95,1.35,5.86))
+ van.WorldPivot=CFrame.new(origin); van:PivotTo(CFrame.new(origin+V(60,.7,-53))*CFrame.Angles(0,-math.pi/2,0))
  local door=Instance.new("Model"); door.Name="Diner glass entrance"; door.Parent=model
  local glassDoor=part("Diner glass door",V(6,8,.12),V(0,4,36),C(183,211,207),Enum.Material.Glass,nil,door); glassDoor.Transparency=.7
  for _,x in {-3,3} do part("Door frame upright",V(.14,8,.2),V(x,4,36),metal,Enum.Material.Metal,nil,door) end
@@ -116,7 +125,7 @@ function Exterior.build(parent,origin)
  -- Road continues to a reachable destination for the first driving objective.
  building(920,185,36,12,26,"OLD MOTOR DEPOT",C(130,116,89))
  part("Depot driveway",V(50,.1,45),V(920,0,166),asphalt,Enum.Material.Asphalt)
- return {model=model,van=van,driverDoor=driverDoor,door=door,part=part,parked=parked,origin=origin,
-  vanStart=V(60,0,-53),safehouse=V(920,0,175),exit=V(0,0,44)}
+ return {model=model,van=van,driverDoor=driverDoor,passengerDoor=passengerDoor,cargoDoor=cargoDoor,door=door,part=part,parked=parked,origin=origin,
+  vanStart=V(60,.7,-53),safehouse=V(920,0,175),exit=V(0,0,44)}
 end
 return Exterior
