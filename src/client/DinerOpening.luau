@@ -70,9 +70,23 @@ function Diner.create(profile)
 			local ok,err=xpcall(function()
 				template=Players:CreateHumanoidModelFromDescriptionAsync(blank,Enum.HumanoidRigType.R6)
 				local character=Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
-				local previous=character.Archivable; character.Archivable=true
-				local hero=character:Clone(); character.Archivable=previous
-				assert(hero,"Could not copy player avatar")
+				local hero
+				if character:FindFirstChild("Torso") then
+					local previous=character.Archivable; character.Archivable=true
+					hero=character:Clone(); character.Archivable=previous
+				else
+					-- Studio/account avatars can still spawn as R15. Convert the
+					-- appearance explicitly instead of copying that rig into the story.
+					local humanoid=assert(character:FindFirstChildOfClass("Humanoid"),"Player avatar has no Humanoid")
+					local description=humanoid:GetAppliedDescription()
+					local converted,result=pcall(function()
+						return Players:CreateHumanoidModelFromDescriptionAsync(description,Enum.HumanoidRigType.R6)
+					end)
+					description:Destroy()
+					if not converted then error(result) end
+					hero=result
+				end
+				assert(hero and hero:FindFirstChild("Torso"),"Could not create R6 story avatar")
 				Outfit.apply(hero,profile)
 				actor("Main character",hero,Vector3.new(-31,2.65,-10.5),math.pi,"eat",1)
 				for i,z in {-26.5,-19.5} do
@@ -90,8 +104,8 @@ function Diner.create(profile)
 					local npc=template:Clone(); local name,face=Cast.dress(npc,spec[1])
 					actor(name,npc,spec[3],spec[4],spec[2],spec[1]+1,face)
 				end
+				preparedEscape=Escape.prepare({model=model,origin=origin,exterior=exterior,actors=actors,rigTemplate=template})
 				template:Destroy(); template=nil
-				preparedEscape=Escape.prepare({model=model,origin=origin,exterior=exterior,actors=actors})
 				model.Parent=workspace
 			end,debug.traceback)
 			blank:Destroy()

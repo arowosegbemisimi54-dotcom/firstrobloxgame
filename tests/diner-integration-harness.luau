@@ -293,7 +293,23 @@ local okFailure=Loading.run(root,ui,{function() error("asset failed") end},funct
 check(not okFailure and render.callback==nil,"loader failure cleans up in reduced motion mode")
 for _,obj in objects do if obj.ClassName=="ViewportFrame" then assert(obj.destroyed,"loading viewport leaked") end end
 check(true,"loading geometry is destroyed after success and failure")
+-- Reproduce the reported failure: the account character has no R6 Torso.
+local sourceTorso=player.Character:FindFirstChild("Torso")
+sourceTorso.Name="UpperTorso"
+local descriptionReads=0
+player.Character:FindFirstChildOfClass("Humanoid").GetAppliedDescription=function()
+ descriptionReads+=1; return Instance.new("HumanoidDescription")
+end
 local natural=Diner.create({gender="Boy",outfit={Hat="none"}}); natural.prepare()
+check(descriptionReads==1 and sourceTorso.Name=="UpperTorso","R15 source avatar is converted for the story without changing the live avatar")
+local r6Crew=0
+for _,obj in objects do
+ if not obj.destroyed and obj.ClassName=="Model" and (obj.Name:find("Masked crew ") or obj.Name:find("Highway patrol officer ")) then
+  assert(obj:FindFirstChild("Torso") and obj:FindFirstChild("Left Arm"),"escape actor inherited non-R6 rig")
+  r6Crew+=1
+ end
+end
+check(r6Crew==6,"all four crew and both officers use independent R6 templates with an R15 player")
 local stopNatural=natural.play(root,ui,function() finishes+=1 end,function() return true end)
 render.callback(100)
 check(finishes==1 and actions.HighwayFour_Interact~=nil,"radio completion hands off into playable chapter without returning to menu")

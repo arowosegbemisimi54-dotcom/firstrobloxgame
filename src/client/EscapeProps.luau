@@ -44,12 +44,15 @@ function Props.build(ctx)
  local exhaust=attach(ext.van,"Getaway rear tire smoke source",V(.1,.1,.1),V(2.8,.5,3.9),C(25,25,25)); exhaust.Transparency=1
  local burnout=smoke(exhaust,0,4)
  local function rig(index,name,masked)
-  local character=ctx.actors[index].rig:Clone(); character.Name=name
+  -- Crew/officers must not inherit a player's rig type, accessories or held props.
+  local template=assert(ctx.rigTemplate,"Escape cast requires its R6 template")
+  local character=template:Clone(); character.Name=name
   for _,obj in character:GetDescendants() do
-   if obj.Name=="WesternWardrobe" or obj.Name=="Original character wardrobe" or obj.Name=="Animated character face" or obj:IsA("Accessory") or obj.Name=="Held diner prop" then obj:Destroy() end
+   if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("Animator") then obj:Destroy()
+   elseif obj:IsA("BasePart") then obj.CanCollide=false; obj.CanTouch=false; obj.CanQuery=false end
   end
-  -- Held props are welded to limbs; remove all props not part of the fresh cast outfit.
-  for _,obj in character:GetDescendants() do if obj.Name=="Utensil handle" or obj.Name=="Fork shoulder" or obj.Name=="Held fork tine" or obj.Name:find("Coffee pot") then obj:Destroy() end end
+  local humanoid=character:FindFirstChildOfClass("Humanoid")
+  if humanoid then humanoid.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None end
   local _,face=Cast.dress(character,(index-1)%6+1); character.Name=name; character.Parent=folder
   local joints={}
   for _,obj in character:GetDescendants() do if obj:IsA("Motor6D") then joints[obj.Name]={joint=obj,base=obj.C0} end end
