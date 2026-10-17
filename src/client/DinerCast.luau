@@ -12,42 +12,44 @@ local people={
 }
 local function makeFace(head,person,index)
 	for _,child in head:GetChildren() do if child:IsA("Decal") or child:IsA("SurfaceGui") then child:Destroy() end end
-	local gui=Instance.new("SurfaceGui"); gui.Name="Animated character face"; gui.Face=Enum.NormalId.Front; gui.CanvasSize=Vector2.new(256,128); gui.LightInfluence=.25; gui.Parent=head
-	local function mark(name,x,y,w,h,color,round)
-		local f=Instance.new("Frame"); f.Name=name; f.Position=UDim2.fromOffset(x,y); f.Size=UDim2.fromOffset(w,h); f.BackgroundColor3=color; f.BorderSizePixel=0; f.Parent=gui
-		if round then local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(1,0); c.Parent=f end
-		return f
+	-- Welded facial geometry stays visible on curved R6 heads, without a GUI
+	-- being hidden inside the head mesh at the mouth and cheek edges.
+	local face=Instance.new("Model"); face.Name="Animated character face"; face.Parent=head
+	local front=-head.Size.Z/2-.045
+	local function feature(name,x,y,w,h,color,depth)
+		local p=Instance.new("Part"); p.Name=name; p.Size=V(w,h,depth or .065); p.Shape=Enum.PartType.Ball; p.Color=color; p.Material=Enum.Material.SmoothPlastic
+		p.CanCollide,p.CanTouch,p.CanQuery,p.Massless=false,false,false,true
+		local offset=CFrame.new(x,y,front); p.CFrame=head.CFrame*offset; p.Parent=face
+		local joint=Instance.new("Weld"); joint.Part0=head; joint.Part1=p; joint.C0=offset; joint.Parent=p
+		return p,joint
 	end
 	local eyes={}
-	for _,x in {89,151} do
-		local eye=mark("Eye white",x,48,18,11,C(241,233,212),true)
-		local pupil=Instance.new("Frame"); pupil.Name="Hazel iris"; pupil.Size=UDim2.fromOffset(7,10); pupil.Position=UDim2.fromOffset(6,0); pupil.BackgroundColor3=index==2 and C(66,91,72) or C(58,42,30); pupil.BorderSizePixel=0; pupil.Parent=eye
-		local corner=Instance.new("UICorner"); corner.CornerRadius=UDim.new(1,0); corner.Parent=pupil
-		local highlight=mark("Eye highlight",x+9,49,2,2,C(255,247,228),true)
-		local brow=mark("Expressive eyebrow",x-2,39,22,4,person.Hair,true); brow.Rotation=x<128 and -5 or 5
-		table.insert(eyes,{white=eye,pupil=pupil,brow=brow,highlight=highlight})
+	for _,side in {-1,1} do
+		local x=side*.25
+		local white=feature("Eye white",x,.12,.26,.22,C(246,237,215))
+		local pupil,pupilJoint=feature("Expressive iris",x,.12,.11,.15,index==2 and C(55,91,66) or C(50,37,26),.095)
+		local brow,browJoint=feature("Expressive eyebrow",x,.32,.30,.065,person.Hair)
+		table.insert(eyes,{white=white,pupil=pupil,pupilJoint=pupilJoint,brow=browJoint,side=side,x=x})
 	end
-	mark("Nose shadow",126,62,5,12,person.Skin:Lerp(C(70,39,25),.25),true)
-	local mouth=mark("Animated mouth",116,88,26,4,C(82,43,34),true)
-	mark("Lower lip",121,94,16,2,person.Skin:Lerp(C(151,73,57),.35),true)
+	feature("Sculpted nose",0,-.035,.11,.17,person.Skin:Lerp(C(91,54,34),.12),.16)
+	local mouth=feature("Animated mouth",0,-.24,.39,.10,C(73,33,28),.09)
+	local teeth=feature("Visible teeth",0,-.215,.29,.04,C(240,230,202),.12)
 	if person.Style=="cook" then
-		for _,x in {112,130} do local m=mark("Cook moustache",x,81,18,5,person.Hair,true); m.Rotation=x==112 and -8 or 8 end
-	elseif person.Style=="surveyor" then
-		for i=1,9 do mark("Beard stubble",105+i*5,98+(i%2)*3,2,2,person.Hair,true) end
+		for _,side in {-1,1} do feature("Cook moustache",side*.12,-.14,.23,.065,person.Hair,.13) end
 	elseif person.Style=="regular" then
-		for _,x in {95,161} do for i=1,3 do mark("Freckle",x+i*3,71+(i%2)*3,2,2,C(153,88,55),true) end end
+		for _,side in {-1,1} do for i=1,3 do feature("Cheek freckle",side*(.27+i*.045),-.09+(i%2)*.035,.022,.022,C(149,89,59),.07) end end
 	end
-	return function(time,eating)
-		local phase=(time+index*.83)%(3.3+index*.21)
-		local blink=phase<.12
+	return function(time,eating,reacting)
+		local blink=(time+index*.83)%(3.3+index*.21)<.12
 		for _,eye in eyes do
-			eye.white.Size=UDim2.fromOffset(18,blink and 2 or 11)
-			eye.pupil.Visible=not blink; eye.highlight.Visible=not blink
-			eye.pupil.Position=UDim2.fromOffset(6+math.sin(time*.43+index)*2,0)
-			eye.brow.Rotation=math.sin(time*.6+index)*3
+			eye.white.Size=V(.26,blink and .025 or (reacting and .26 or .22),.065)
+			eye.pupil.Transparency=blink and 1 or 0
+			eye.pupilJoint.C0=CFrame.new(eye.x+math.sin(time*.43+index)*.025,.12,front)
+			eye.brow.C0=CFrame.new(eye.x,reacting and .34 or .32,front)*CFrame.Angles(0,0,reacting and eye.side*.28 or math.sin(time*.6+index)*.08)
 		end
 		local chewing=eating and math.sin(time*1.6+index+1)>.35
-		mouth.Size=UDim2.fromOffset(26,chewing and (4+math.abs(math.sin(time*9))*5) or 3)
+		mouth.Size=V(reacting and .29 or .39,reacting and .19 or (chewing and .11+math.abs(math.sin(time*9))*.08 or .10),.09)
+		teeth.Transparency=reacting and 1 or 0
 	end
 end
 function Cast.dress(rig,index)

@@ -177,8 +177,8 @@ local eyes={}
 for _,person in cast do
  for _,obj in person:GetDescendants() do
   if obj.Name=="Animated character face" then faceCount+=1 end
-  if obj.Name=="Animated mouth" then mouths[obj]=obj.Size.Y.Offset end
-  if obj.Name=="Eye white" then eyes[obj]=obj.Size.Y.Offset end
+  if obj.Name=="Animated mouth" then mouths[obj]=obj.Size.Y end
+  if obj.Name=="Eye white" then eyes[obj]=obj.Size.Y end
  end
 end
 check(faceCount==6,"all six original NPCs have locally authored animated faces")
@@ -190,6 +190,9 @@ for _,obj in objects do
 end
 check(parts<2400 and #objects<6200,"expanded diner stays within geometry and artwork allocation budgets")
 check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
+check(counts["Walnut diner radio"]==1 and not counts["CRT glass screen"],"broadcast uses one countertop radio and no television")
+check(counts["Upright refrigerator"]==1 and counts["Sink dark basin"]==2 and counts["Stainless extractor hood"]==1,"compact kitchen includes fridge, sinks and extraction")
+check(counts["Sculpted nose"]==6 and counts["Visible teeth"]==6,"all NPCs have visible three-dimensional facial features")
 check(counts["Booth side window"]==4,"each booth bay has a side window")
 check(counts["Painted landscape"]==2 and counts["Hanging opal globe"]==12,"original paintings and suspended lights are present")
 check(counts["Ketchup bottle"]==7 and counts["Salt shaker"]==7,"all booth tables and counter stations have full condiment sets")
@@ -210,8 +213,8 @@ local blinked=false
 local chewed=false
 for _=1,50 do
  render.callback(.08)
- for eye in eyes do if eye.Size.Y.Offset==2 then blinked=true end end
- for mouth,initial in mouths do if mouth.Size.Y.Offset~=initial then chewed=true end end
+ for eye in eyes do if eye.Size.Y==.025 then blinked=true end end
+ for mouth,initial in mouths do if mouth.Size.Y~=initial then chewed=true end end
 end
 check(blinked and chewed,"NPCs blink and animate their mouths during the opening")
 check(workspace.CurrentCamera.CameraType=="CameraTypeScriptable","diner takes scripted camera control")
@@ -230,7 +233,7 @@ for _,obj in objects do
  if obj.ClassName=="AudioTextToSpeech" and obj.IsPlaying then voicesPlaying+=1 end
  if obj.Name=="News stinger" and (obj.plays or 0)>0 then stingers+=1 end
 end
-check(pausedPour and voicesPlaying==1 and stingers>=2,"news entrance pauses pouring and starts one shared narration source with both stingers")
+check(pausedPour and voicesPlaying==1 and stingers==2,"news entrance pauses pouring and starts one shared narration source with the radio stinger")
 callbacks["Skip opening"]()
 stop()
 check(finishes==1 and render.callback==nil,"skip cleans up once and disconnects camera animation")

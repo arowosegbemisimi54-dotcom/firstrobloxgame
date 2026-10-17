@@ -118,54 +118,37 @@ function Diner.create(profile)
 			ui.navButton(controls,"Next shot →",UDim2.fromOffset(0,0),UDim2.fromOffset(210,44),function() Timeline.next(timeline); if timeline.done then finish() end end)
 			ui.navButton(controls,"Skip opening",UDim2.fromOffset(230,0),UDim2.fromOffset(210,44),finish)
 			local function view(pos,target) return CFrame.lookAt(origin+pos,origin+target) end
-			-- Frame the television from its own front face, including its downward tilt.
-			local function tvView(distance)
-				return CFrame.lookAt((broadcast.tv.CFrame*CFrame.new(0,0,-distance)).Position,broadcast.tv.CFrame.Position)
-			end
+			local radioWide=view(Vector3.new(7,5.8,0),Vector3.new(16,4.3,-6))
+			local radioClose=view(Vector3.new(9.5,4.9,-3),Vector3.new(14,4.45,-6))
 			local shots={
 				{view(Vector3.new(-4,8,31),Vector3.new(0,5,-10)),view(Vector3.new(-7,7,16),Vector3.new(1,5,-10)),64},
 				{view(Vector3.new(-20,6,-1),Vector3.new(-31,3.8,-10.5)),view(Vector3.new(-27,5.2,-5.7),Vector3.new(-31,3.8,-10.5)),52},
-				{tvView(9),tvView(7.5),38},
-				{tvView(7.5),tvView(7.1),38},
-				{tvView(7.1),tvView(6.8),38},
-				{tvView(7.1),tvView(6.8),38},
-				{tvView(6.8),tvView(6.8),38},
-			}
-			-- Short reaction inserts leave most of each news paragraph on the reporter.
-			local reactions={
-				[4]={duration=2.5,from=view(Vector3.new(-21,5.7,-23),Vector3.new(-31,3.4,-23)),to=view(Vector3.new(-22,5.5,-23),Vector3.new(-31,3.4,-23)),fov=56},
-				[5]={duration=3,from=view(Vector3.new(5,6,9),Vector3.new(22,4,-4)),to=view(Vector3.new(6,6,7),Vector3.new(23,4,-5)),fov=62},
-				[6]={duration=2,from=view(Vector3.new(-26,5,-5),Vector3.new(-31,3.8,-10.5)),to=view(Vector3.new(-27,5.2,-5.7),Vector3.new(-31,3.8,-10.5)),fov=52},
+				{radioWide,radioClose,48},
+				{view(Vector3.new(-21,5.7,-23),Vector3.new(-31,3.4,-23)),view(Vector3.new(-22,5.5,-23),Vector3.new(-31,3.4,-23)),56},
+				{view(Vector3.new(7,5.5,8),Vector3.new(22,4.3,-3)),view(Vector3.new(9,5.3,6),Vector3.new(23,4.2,-5)),58},
+				{view(Vector3.new(-26,5,-5),Vector3.new(-31,3.8,-10.5)),view(Vector3.new(-27,5.2,-5.7),Vector3.new(-31,3.8,-10.5)),52},
+				{radioWide,radioClose,48},
 			}
 			connection=RunService.RenderStepped:Connect(function(dt)
 				elapsed+=dt
 				Timeline.advance(timeline,dt)
 				if timeline.done then finish(); return end
 				local shot=shots[timeline.shot]
-				local reaction=reactions[timeline.shot]
 				local t=math.clamp(timeline.elapsed/Timeline.durations[timeline.shot],0,1)
 				local from,to,fov=shot[1],shot[2],shot[3]
-				local onTV=timeline.shot>=3
-				if reaction and timeline.elapsed<reaction.duration then
-					from,to,fov=reaction.from,reaction.to,reaction.fov
-					t=timeline.elapsed/reaction.duration; onTV=false
-				end
+
 				local blend=t*t*(3-2*t)
 				broadcast.update(timeline.shot,timeline.elapsed,reducedMotion())
 				subtitle.Text=Timeline.dialogue[timeline.shot] or ""; subtitle.Visible=subtitle.Text~=""
 				local camera=workspace.CurrentCamera
 				if camera then
-					-- Keep the whole TV screen readable on portrait devices as well.
-					if onTV then
-						local aspect=root.AbsoluteSize.X/math.max(1,root.AbsoluteSize.Y)
-						fov=math.max(fov,math.deg(2*math.atan(2.8/(6.8*math.max(.45,aspect)))))
-					end
+
 					camera.CameraType=Enum.CameraType.Scriptable; camera.FieldOfView=fov
 					camera.CFrame=reducedMotion() and to or from:Lerp(to,blend)
 				end
 				for _,person in actors do
 					local reacting=timeline.shot>=3
-					if person.face then person.face(elapsed,not reacting and person.role=="eat") end
+					if person.face then person.face(elapsed,not reacting and person.role=="eat",reacting) end
 					local phase=elapsed*1.6+person.index
 					local breath=math.sin(phase)*.025
 					if person.role=="eat" or person.role=="reader" or person.role=="bar" then
@@ -173,7 +156,7 @@ function Diner.create(profile)
 						setJoint(person,"LeftKnee",CFrame.Angles(math.pi/2,0,0)); setJoint(person,"RightKnee",CFrame.Angles(math.pi/2,0,0))
 						local bite=reacting and 0 or (math.sin(phase)+1)/2
 						setJoint(person,"RightShoulder",CFrame.Angles(reacting and .45 or (person.r6 and (1.0+bite*.65) or (.5+bite*.55)),0,-.1)); setJoint(person,"RightElbow",CFrame.Angles(-.4-bite*1.2,0,0))
-						setJoint(person,"Neck",CFrame.Angles(reacting and -.3 or -bite*.12,reacting and (person.index==3 and -.85 or .85) or math.sin(phase*.3)*.12,0))
+						setJoint(person,"Neck",CFrame.Angles(reacting and -.02 or -bite*.12,reacting and (person.index==3 and -.85 or .85) or math.sin(phase*.3)*.12,0))
 						person.rig:PivotTo(person.base*CFrame.new(0,breath,0)*(person.role=="bar" and CFrame.Angles(0,reacting and 1.4 or 0,0) or CFrame.new()))
 						if person.props.pageHinge then
 							local turn=reacting and 0 or math.max(0,math.sin(elapsed*.8))*math.pi*.8
@@ -182,7 +165,7 @@ function Diner.create(profile)
 					elseif person.role=="waitress" then
 						person.rig:PivotTo(person.base*CFrame.new(0,breath,0))
 						setJoint(person,"RightShoulder",CFrame.Angles(1.1,0,-.22)); setJoint(person,"LeftShoulder",CFrame.Angles(.2,0,0))
-						setJoint(person,"Neck",CFrame.Angles(reacting and -.3 or .12,reacting and -.65 or 0,0))
+						setJoint(person,"Neck",CFrame.Angles(reacting and .02 or .12,reacting and -.65 or 0,0))
 						coffeeStream.Transparency=reacting and 1 or .18
 						if person.props.spout then
 							local start=person.props.spout.CFrame.Position; local target=origin+Vector3.new(17.6,3.98,5.4)

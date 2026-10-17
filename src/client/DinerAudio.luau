@@ -1,7 +1,7 @@
 -- Optional platform narration with subtitles always available. A single source
--- feeds both emitters so the radio and TV never speak over each other out of sync.
+-- plays the news through the countertop radio.
 local Audio={}
-function Audio.create(parent,tv,radio,dialogue)
+function Audio.create(parent,radio,dialogue)
  local folder=Instance.new("Folder"); folder.Name="Diner broadcast audio"; folder.Parent=parent
  local destroyed=false
  local voices={}
@@ -13,11 +13,11 @@ function Audio.create(parent,tv,radio,dialogue)
   local s=Instance.new("Sound"); s.Name=name; s.SoundId="rbxasset://sounds/switch.wav"; s.PlaybackSpeed=speed; s.Volume=volume; s.Looped=loop or false; s.RollOffMinDistance=12; s.RollOffMaxDistance=110; s.Parent=where; return s
  end
  local stingers={}
- for _,source in {tv,radio} do
+ for _,source in {radio} do
   local tones={}; for _,pitch in {.8,1.25,1.7} do table.insert(tones,sound(source,"News stinger",pitch,.35)) end
   table.insert(stingers,tones)
  end
- local buzz=sound(tv,"Emergency signal buzz",.2,.10,true)
+ local buzz=sound(radio,"Emergency signal buzz",.2,.10,true)
  local clink=sound(radio,"Diner silverware",2.7,.035)
  local function wire(source,target)
   local w=Instance.new("Wire"); w.SourceInstance=source; w.TargetInstance=target; w.Parent=folder
@@ -36,7 +36,7 @@ function Audio.create(parent,tv,radio,dialogue)
  end
  local ok=pcall(function()
   local emitters={}
-  for _,position in {tv,radio} do
+  for _,position in {radio} do
    local emitter=Instance.new("AudioEmitter"); emitter.PositionInstance=position; emitter.AudioInteractionGroup="DinerOpening"; emitter.Parent=folder
    emitter:SetDistanceAttenuation({[0]=1,[60]=.8,[120]=0}); table.insert(emitters,emitter)
   end

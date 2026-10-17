@@ -196,6 +196,63 @@ function Art.build(model,origin)
 	for i=1,3 do disk("Golden pancake",V(-31,3.08+i*.11,8.35),.6,.1,C(201+i*7,140+i*5,64)) end
 	part("Pancake butter",V(.25,.08,.22),V(-31,3.47,8.35),C(243,213,123))
 	cup(17.6,3.47,5.4)
+	-- Compact service lane and a defined galley replace the empty back-counter floor.
+	part("Kitchen tiled rear wall",V(.4,14.5,72),V(30,6.75,0),C(218,218,199),Enum.Material.Brick)
+	part("Service wall lower panel",V(.4,3.1,72),V(21.5,1.55,0),ivory)
+	part("Service wall upper panel",V(.4,7.2,72),V(21.5,10.9,0),ivory,Enum.Material.Plaster)
+	for _,section in {{-27.75,16.5},{.25,5.5},{25.5,21}} do
+		part("Kitchen pass wall pier",V(.4,4.3,section[2]),V(21.5,5.2,section[1]),ivory,Enum.Material.Plaster)
+	end
+	part("Second service hatch sill",V(.8,.16,12),V(21.3,3.3,9),chrome,Enum.Material.Metal)
+	for z=-33,33,3 do
+		part("Kitchen wall red trim",V(.06,.12,2.9),V(21.25,8.9,z),red)
+		part("Kitchen wall checker accent",V(.06,.65,.65),V(21.22,8.4,z),C(42,45,43),nil,nil,CFrame.Angles(math.pi/4,0,0))
+	end
+	part("Stainless extractor hood",V(6.8,1.2,5),V(25,7,-13),chrome,Enum.Material.Metal)
+	part("Extractor duct",V(2.6,6.2,2.6),V(26,10.6,-13),chrome,Enum.Material.Metal)
+	for x=22.2,27.8,.4 do part("Hood grease filter",V(.2,.08,3.8),V(x,6.35,-13),C(69,75,72),Enum.Material.Metal) end
+	part("Flat top grill cabinet",V(6,3,3),V(26,1.5,-20),chrome,Enum.Material.Metal)
+	part("Seasoned flat top grill",V(5.8,.12,2.8),V(26,3.08,-20),C(49,47,41),Enum.Material.Metal)
+	for x=24,28,1 do local knob=part("Grill control knob",V(.14,.22,.22),V(22.94,2.5,-21+(x-24)*.5),C(39,38,34)); knob.Shape=Enum.PartType.Ball end
+	part("Galley lower cabinets",V(3,3,17),V(28.2,1.5,8),chrome,Enum.Material.Metal)
+	part("Stainless prep worktop",V(3.2,.14,17.2),V(28.2,3.08,8),chrome,Enum.Material.Metal)
+	for z=1,15,2 do
+		part("Galley cabinet front",V(.08,2.7,1.85),V(26.66,1.5,z),C(153,164,162),Enum.Material.Metal)
+		part("Cabinet pull",V(.12,.12,.6),V(26.57,2.5,z),chrome,Enum.Material.Metal)
+	end
+	for _,z in {7,10} do
+		part("Sink dark basin",V(2.4,.05,2.2),V(28.2,3.17,z),C(67,83,84),Enum.Material.Metal)
+		for _,dx in {-1.25,1.25} do part("Sink raised rim",V(.10,.1,2.4),V(28.2+dx,3.21,z),chrome,Enum.Material.Metal) end
+		part("Sink faucet upright",V(.12,.9,.12),V(29.3,3.65,z),chrome,Enum.Material.Metal)
+		part("Sink faucet spout",V(.8,.12,.12),V(28.95,4.08,z),chrome,Enum.Material.Metal)
+	end
+	for _,z in {3,13} do
+		part("Kitchen wall shelf",V(2.2,.12,5),V(28.8,5.5,z),chrome,Enum.Material.Metal)
+		for i=1,6 do disk("Stacked kitchen plate",V(28.4,5.57+i*.065,z),.65,.055,ivory) end
+		for i=1,3 do local bowl=part("Prep ingredient bowl",V(.65,.3,.65),V(28.3,3.35,z-1+i*.65),ivory,nil,Enum.PartType.Ball) end
+	end
+	part("Upright refrigerator",V(4,7.2,4.8),V(27,3.6,22),chrome,Enum.Material.Metal)
+	for _,z in {20.8,23.2} do
+		part("Refrigerator door",V(.09,6.8,2.25),V(24.94,3.6,z),C(186,195,189),Enum.Material.Metal)
+		part("Refrigerator handle",V(.16,1.5,.16),V(24.8,3.8,z+.65),C(66,70,67),Enum.Material.Metal)
+	end
+	-- Equipment on the service side gives the waitress a believable work station.
+	part("Coffee station cabinet",V(1.9,3.1,5),V(20.35,1.55,20),teal)
+	part("Coffee station counter",V(2,.14,5.2),V(20.35,3.2,20),chrome,Enum.Material.Metal)
+	for _,z in {19,21} do
+		disk("Coffee urn",V(20.3,4.3,z),.52,1.7,chrome,Enum.Material.Metal)
+		disk("Coffee urn lid",V(20.3,5.2,z),.56,.12,C(48,47,40))
+		part("Coffee urn tap",V(.4,.12,.13),V(19.7,3.85,z),C(43,42,37))
+	end
+	part("Cash register body",V(1.7,.8,1.5),V(14.5,3.9,15),C(70,77,72),Enum.Material.Metal)
+	part("Register keypad",V(.08,.5,1),V(13.6,4.1,15),C(35,39,35))
+	part("Register receipt",V(.08,.4,.45),V(14,4.5,15.4),ivory)
+	for i=1,5 do disk("Service cup stack",V(20,3.4+i*.15,17.9),.25,.2,ivory) end
+	for _,z in {-28,27} do
+		local board=part("Kitchen chalk specials board",V(.15,2.4,4.5),V(21.2,10.5,z),C(33,47,40))
+		local gui=Instance.new("SurfaceGui"); gui.Face=Enum.NormalId.Left; gui.CanvasSize=Vector2.new(500,260); gui.Parent=board
+		local label=Instance.new("TextLabel"); label.Size=UDim2.fromScale(1,1); label.BackgroundTransparency=1; label.Text=z<0 and "TODAY'S SPECIALS\nPancakes • Fresh coffee\nHomestyle breakfast" or "FROM THE GRILL\nBurgers • Fries\nHouse pie"; label.TextScaled=true; label.TextColor3=ivory; label.Font=Enum.Font.SpecialElite; label.Parent=gui
+	end
 	for _,x in {-30,-12,14} do for _,z in {-23,-7,9,25} do
 		disk("Pendant ceiling rose",V(x,14.2,z),.35,.15,chrome,Enum.Material.Metal)
 		disk("Hanging lamp stem",V(x,12.5,z),.045,3.2,C(55,53,46),Enum.Material.Metal)
