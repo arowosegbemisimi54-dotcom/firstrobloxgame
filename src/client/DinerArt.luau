@@ -87,7 +87,7 @@ function Art.build(model,origin)
 	for _,z in {-31,-15,1,17,33} do part("Booth window wall pier",V(.5,14.5,4),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
 	for _,z in {-34.5,34.5} do part("Booth wall end",V(.5,14.5,3),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
 	part("Front window header",V(76,2.5,.5),V(0,13.25,36),ivory,Enum.Material.Plaster)
-	part("Window sill wall",V(76,2,.5),V(0,.8,36),teal)
+	for _,x in {-20.5,20.5} do part("Window sill wall",V(35,2,.5),V(x,.8,36),teal) end
 	part("Ceiling",V(76,.25,72),V(0,14.5,0),C(217,220,205))
 	for x=-36,36,4 do part("Pressed ceiling seam",V(.04,.04,72),V(x,14.34,0),chrome,Enum.Material.Metal) end
 	for z=-36,36,4 do part("Pressed ceiling seam",V(76,.04,.04),V(0,14.34,z),chrome,Enum.Material.Metal) end
@@ -106,14 +106,16 @@ function Art.build(model,origin)
 		part("Booth window sill",V(.85,.15,12.5),V(-37.6,2.45,z),ivory)
 	end
 	for x=-30,30,12 do
-		local window=part("Clear noon window",V(10,10,.1),V(x,7,36),C(210,231,235),Enum.Material.Glass)
+		local width=math.abs(x)==6 and 6 or 10
+		local center=math.abs(x)==6 and (x<0 and -7 or 7) or x
+		local window=part("Clear noon window",V(width,10,.1),V(center,7,36),C(210,231,235),Enum.Material.Glass)
 		daylight(window,Enum.NormalId.Front)
-		for _,dx in {-5,0,5} do part("Brushed window mullion",V(.12,10,.25),V(x+dx,7,35.9),chrome,Enum.Material.Metal) end
-		for _,y in {2,7,12} do part("Window horizontal frame",V(10,.12,.25),V(x,y,35.9),chrome,Enum.Material.Metal) end
+		for _,dx in {-width/2,0,width/2} do part("Brushed window mullion",V(.12,10,.25),V(center+dx,7,35.9),chrome,Enum.Material.Metal) end
+		for _,y in {2,7,12} do part("Window horizontal frame",V(width,.12,.25),V(center,y,35.9),chrome,Enum.Material.Metal) end
 	end
 	part("Exterior sand",V(500,1,500),V(0,-.7,0),C(193,164,117),Enum.Material.Sand)
-	part("Road outside diner",V(420,.1,22),V(0,-.12,70),C(81,81,76),Enum.Material.Asphalt)
-	for x=-190,190,18 do part("Road center dash",V(8,.02,.2),V(x,-.05,70),C(224,193,101)) end
+	-- The exterior module supplies the parking court and highway.
+	
 	sign("Original diner marquee","SUNSET\nDINER",V(-27,10,-35.6),Vector2.new(13,3.2),red,ivory)
 	sign("Kitchen sign","FRESH COFFEE  •  ALL DAY",V(16,10,-35.6),Vector2.new(12,1.2),teal,ivory)
 	for index,art in Paintings do

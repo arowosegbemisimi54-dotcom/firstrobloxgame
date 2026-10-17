@@ -132,7 +132,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -157,6 +157,12 @@ modules.audio=(function()
 end)()
 modules.broadcast=(function()
 -- INSERT_BROADCAST
+end)()
+modules.cars=(function()
+-- INSERT_CARS
+end)()
+modules.exterior=(function()
+-- INSERT_EXTERIOR
 end)()
 local Diner=(function()
 -- INSERT_DINER
@@ -188,7 +194,10 @@ for _,obj in objects do
  if obj:IsA("BasePart") then parts+=1 end
  if obj.Name then counts[obj.Name]=(counts[obj.Name] or 0)+1 end
 end
-check(parts<2400 and #objects<6200,"expanded diner stays within geometry and artwork allocation budgets")
+local exteriorParts=0
+for _,obj in objects do if obj.Name=="Sunset Diner roadside block" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then exteriorParts+=1 end end end end
+check(parts-exteriorParts<2400 and exteriorParts<1800,"interior and roadside block stay within separate geometry budgets")
+check(counts["Matte black getaway panel van"]==1 and counts["Diner glass entrance"]==1 and counts["Weathered parking court"]==1,"exterior includes getaway van, opening entrance and parking court")
 check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
 check(counts["Walnut diner radio"]==1 and not counts["CRT glass screen"],"broadcast uses one countertop radio and no television")
 check(counts["Upright refrigerator"]==1 and counts["Sink dark basin"]==2 and counts["Stainless extractor hood"]==1,"compact kitchen includes fridge, sinks and extraction")

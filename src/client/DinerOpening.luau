@@ -7,6 +7,7 @@ local Art=require(script.Parent.DinerArt)
 local Cast=require(script.Parent.DinerCast)
 local Lighting=game:GetService("Lighting")
 local Broadcast=require(script.Parent.DinerBroadcast)
+local Exterior=require(script.Parent.DinerExterior)
 local Diner={}
 
 function Diner.create(profile)
@@ -15,6 +16,7 @@ function Diner.create(profile)
 	local origin=Vector3.new(0,14000,0)
 	local actors={}
 	Art.build(model,origin)
+	local exterior=Exterior.build(model,origin)
 	local broadcast=Broadcast.create(model,origin,Timeline.dialogue)
 	local lightingSnapshot
 	local effectSnapshot={}
