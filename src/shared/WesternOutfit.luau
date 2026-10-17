@@ -15,6 +15,22 @@ local function piece(parent,body,name,size,offset,color,shape,material)
 	weld.Part0,weld.Part1,weld.Parent=body,p,p
 	return p
 end
+-- The brim overlaps the top of the head; the crown is a cattleman crease,
+-- with raised side ridges and curled brim edges instead of a round dome.
+function Outfit.addHat(parent,head,hat)
+	local y=head.Size.Y*.40
+	local width=head.Size.X*.82
+	local depth=head.Size.Z*1.12
+	piece(parent,head,"Shaped cowboy brim",Vector3.new(.09,head.Size.X*1.38,head.Size.Z*1.95),CFrame.new(0,y,-.035)*CFrame.Angles(0,0,math.pi/2),hat,Enum.PartType.Cylinder)
+	piece(parent,head,"Cattleman crown base",Vector3.new(.42,width,depth),CFrame.new(0,y+.23,0)*CFrame.Angles(0,0,math.pi/2),hat,Enum.PartType.Cylinder)
+	for _,side in {-1,1} do
+		piece(parent,head,"Cattleman crown ridge",Vector3.new(width*.40,.30,depth*.87),CFrame.new(side*width*.23,y+.48,0),hat,Enum.PartType.Ball)
+		piece(parent,head,"Curled western brim",Vector3.new(.45,.10,head.Size.Z*1.45),CFrame.new(side*head.Size.X*.59,y+.09,-.035)*CFrame.Angles(0,0,side*.35),hat)
+	end
+	piece(parent,head,"Recessed crown crease",Vector3.new(width*.18,.065,depth*.66),CFrame.new(0,y+.45,0),hat:Lerp(Color3.new(),.16))
+	piece(parent,head,"Leather hat band",Vector3.new(.12,width*1.015,depth*1.015),CFrame.new(0,y+.10,0)*CFrame.Angles(0,0,math.pi/2),leather,Enum.PartType.Cylinder,Enum.Material.Leather)
+	piece(parent,head,"Hat band brass clasp",Vector3.new(.13,.10,.06),CFrame.new(-width*.28,y+.10,-depth*.48),Color3.fromRGB(179,143,78),nil,Enum.Material.Metal)
+end
 function Outfit.apply(character,profile)
 	local previous=character:FindFirstChild("WesternWardrobe")
 	if previous then previous:Destroy() end
@@ -84,14 +100,7 @@ function Outfit.apply(character,profile)
 	local head=character:FindFirstChild("Head")
 	if head and outfit.Hat=="cowboy" then
 		local hat=girl and Color3.fromRGB(112,77,49) or Color3.fromRGB(149,115,70)
-		local brimY=head.Size.Y*.58
-		piece(folder,head,"Shaped cowboy brim",Vector3.new(.085,head.Size.X*1.28,head.Size.Z*1.8),CFrame.new(0,brimY,0)*CFrame.Angles(0,0,math.pi/2),hat,Enum.PartType.Cylinder)
-		piece(folder,head,"Creased felt crown",Vector3.new(head.Size.X*.82,.66,head.Size.Z*1.03),CFrame.new(0,brimY+.28,0),hat,Enum.PartType.Ball)
-		for _,side in {-1,1} do
-			piece(folder,head,"Upturned brim edge",Vector3.new(.34,.085,head.Size.Z*1.3),CFrame.new(side*head.Size.X*.57,brimY+.05,0)*CFrame.Angles(0,0,side*.22),hat)
-		end
-		piece(folder,head,"Leather hat band",Vector3.new(head.Size.X*.81,.11,head.Size.Z*1.04),CFrame.new(0,brimY+.1,0),leather,nil,Enum.Material.Leather)
-		piece(folder,head,"Hat band brass clasp",Vector3.new(.1,.09,.06),CFrame.new(-head.Size.X*.29,brimY+.1,-head.Size.Z*.53),Color3.fromRGB(179,143,78),nil,Enum.Material.Metal)
+		Outfit.addHat(folder,head,hat)
 	end
 
 end

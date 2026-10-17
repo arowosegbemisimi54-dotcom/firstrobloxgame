@@ -124,6 +124,12 @@ workspace.CurrentCamera={}
 local Timeline=(function()
 -- INSERT_TIMELINE
 end)()
+local Paintings=(function()
+-- INSERT_PAINTINGS
+end)()
+local script={Parent={DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local modules={timeline=Timeline,paintings=Paintings}
+local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
 -- INSERT_ART
 end)()
@@ -133,9 +139,7 @@ end)()
 local Outfit=(function()
 -- INSERT_OUTFIT
 end)()
-local script={Parent={DinerArt="art",DinerCast="cast",LoadingLandscape="landscape"}}
-local modules={timeline=Timeline,outfit=Outfit,art=Art,cast=Cast}
-local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
+modules.outfit=Outfit; modules.art=Art; modules.cast=Cast
 local Landscape=(function()
 -- INSERT_LANDSCAPE
 end)()
@@ -167,7 +171,17 @@ for _,person in cast do
  end
 end
 check(faceCount==4,"all four original NPCs have locally authored animated faces")
-check(#objects<3800,"diner set and cast stay within procedural object budget")
+local parts=0
+local counts={}
+for _,obj in objects do
+ if obj:IsA("BasePart") then parts+=1 end
+ if obj.Name then counts[obj.Name]=(counts[obj.Name] or 0)+1 end
+end
+check(parts<2100 and #objects<6200,"expanded diner stays within geometry and artwork allocation budgets")
+check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
+check(counts["Booth side window"]==4,"each booth bay has a side window")
+check(counts["Painted landscape"]==2 and counts["Hanging opal globe"]==12,"original paintings and suspended lights are present")
+check(counts["Ketchup bottle"]==7 and counts["Salt shaker"]==7,"all booth tables and counter stations have full condiment sets")
 local callbacks={}
 local ui={}
 function ui.make(kind,properties,parent)

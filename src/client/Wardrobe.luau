@@ -92,7 +92,7 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 	end
 	renderCards=function()
 		cards:ClearAllChildren()
-		ui.make("UIGridLayout",{CellSize=UDim2.fromOffset(136,154),CellPadding=UDim2.fromOffset(14,14),SortOrder=Enum.SortOrder.LayoutOrder},cards)
+		ui.make("UIGridLayout",{CellSize=UDim2.fromOffset(96,110),CellPadding=UDim2.fromOffset(12,12),SortOrder=Enum.SortOrder.LayoutOrder},cards)
 		if not template then return end
 		status.Text=selectedTab=="Critter" and "Dogs unlock as you advance through Story Mode." or "Select an item to wear it."
 		local visibleItems={}
@@ -101,7 +101,7 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		end
 		for index,item in visibleItems do
 			local slot=selectedTab
-			local card=ui.make("TextButton",{Text="",Size=UDim2.fromOffset(136,154),BackgroundColor3=Color3.fromRGB(38,34,27),BackgroundTransparency=.2,BorderSizePixel=0,LayoutOrder=index,Selectable=true},cards)
+			local card=ui.make("TextButton",{Text="",Size=UDim2.fromOffset(96,110),BackgroundColor3=Color3.fromRGB(38,34,27),BackgroundTransparency=.2,BorderSizePixel=0,LayoutOrder=index,Selectable=true},cards)
 			ui.make("UICorner",{CornerRadius=UDim.new(0,4)},card)
 			ui.make("UIStroke",{Color=Color3.fromRGB(222,161,80),Thickness=profile.outfit[slot]==item.id and 2 or 1,Transparency=profile.outfit[slot]==item.id and 0 or .75},card)
 			local picture=ui.make("ViewportFrame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Ambient=Color3.fromRGB(200,190,173),LightColor=Color3.fromRGB(255,231,195)},card)

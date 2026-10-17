@@ -41,6 +41,8 @@ function meta.__newindex(self,key,value)
 	end
 	self.values[key]=value
 end
+function methods:SetAttribute(key,value) self.values["attr_"..key]=value end
+function methods:GetAttribute(key) return self.values["attr_"..key] end
 function methods:GetChildren() local list={}; for child in self.children do table.insert(list,child) end; return list end
 function methods:PivotTo(value) self.pivots=(self.pivots or 0)+1; self.lastPivot=value end
 function methods:Destroy()
@@ -57,6 +59,11 @@ function random:NextNumber(a,b)
 	seed=(seed*48271)%2147483647
 	return a+(b-a)*seed/2147483647
 end
+local Traffic=(function()
+-- INSERT_TRAFFIC
+end)()
+local script={Parent={DesertTraffic="traffic"}}
+local function require(key) assert(key=="traffic"); return Traffic end
 local Details=(function()
 -- INSERT_DETAILS
 end)()
@@ -74,15 +81,36 @@ for _,obj in objects do if obj.Name=="Rolling tumbleweed" then table.insert(weed
 local checks=0
 local function check(ok,message) assert(ok,message); checks+=1; print("PASS: "..message) end
 check(#weeds==4,"exactly four tumbleweeds allocated")
-check(initialCount<1100,"static scenery detail object budget stays below 1100")
+check(initialCount<1900,"scenery including pooled vehicles stays below 1900 objects")
 local function activeCount()
 	local count=0; for _,weed in weeds do if weed.Parent then count+=1 end end; return count
 end
+local cars,bikes={},{}
+for _,obj in objects do
+ if obj.Name=="Antique touring car" then table.insert(cars,obj) end
+ if obj.Name=="Antique motorcycle with rider" then table.insert(bikes,obj) end
+end
+check(#cars==8 and #bikes==3,"bounded traffic pools contain antique cars and motorcycle riders")
+local lastCarSpawn=nil
+local carSpawns,bikeSpawns=0,0
+local wasActive={}
 local lastSpawn=nil
 local previous={}
 local spawns=0
 for step=1,1200 do
 	details.update(.1,true,true)
+	for _,car in cars do
+		if car.Parent and car:GetAttribute("DepartureTime")~=wasActive[car] then
+			local time=step*.1
+			if lastCarSpawn then assert(math.abs(time-lastCarSpawn-4)<.11,"car cadence drifted from four seconds") end
+			lastCarSpawn=time; carSpawns+=1
+		end
+		wasActive[car]=car:GetAttribute("DepartureTime")
+	end
+	for _,bike in bikes do
+		if bike.Parent and bike:GetAttribute("DepartureTime")~=wasActive[bike] then bikeSpawns+=1 end
+		wasActive[bike]=bike:GetAttribute("DepartureTime")
+	end
 	assert(activeCount()<=4,"unbounded tumbleweed pool")
 	for _,weed in weeds do
 		if weed.Parent and not previous[weed] then
@@ -94,16 +122,23 @@ for step=1,1200 do
 	end
 end
 check(spawns>30 and #objects==initialCount,"two minute simulation preserves cadence with no allocation growth")
+check(carSpawns>=29 and bikeSpawns>=9,"cars depart every four seconds with motorcycle departures in rotation")
+local function trafficPivots() local n=0; for _,vehicle in cars do n+=vehicle.pivots or 0 end; for _,vehicle in bikes do n+=vehicle.pivots or 0 end; return n end
+local trafficBefore=trafficPivots()
 local function pivots() local n=0; for _,weed in weeds do n+=weed.pivots or 0 end; return n end
 local before=pivots()
 for _=1,100 do details.update(.1,true,false) end
 check(pivots()==before,"reduced motion freezes tumbleweeds")
 for _=1,100 do details.update(.1,false,true) end
 check(pivots()==before,"hidden mode screen pauses updates")
+check(trafficPivots()==trafficBefore,"hidden or reduced motion freezes traffic without allocating replacements")
 details.setLowEffects(true)
 for _=1,300 do details.update(.1,true,true); assert(activeCount()<=1,"low effects exceeded one weed") end
 check(true,"low effects limits the active pool to one")
 details.destroy()
 for _,weed in weeds do assert(weed.destroyed and not weed.Parent,"leaked parked weed") end
 check(true,"cleanup destroys active and parked tumbleweeds")
+for _,car in cars do assert(car.destroyed,"car leaked") end
+for _,bike in bikes do assert(bike.destroyed,"motorcycle leaked") end
+check(true,"cleanup destroys active and parked traffic")
 print(string.format("%d scenery checks passed",checks))

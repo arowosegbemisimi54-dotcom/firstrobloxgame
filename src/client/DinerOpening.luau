@@ -64,16 +64,16 @@ function Diner.create(profile)
 				local hero=character:Clone(); character.Archivable=previous
 				assert(hero,"Could not copy player avatar")
 				Outfit.apply(hero,profile)
-				actor("Main character",hero,Vector3.new(-23,3.1,-2),-math.pi/2,"eat",1)
-				for i,z in {-13,10} do
+				actor("Main character",hero,Vector3.new(-31,2.65,-10.5),math.pi,"eat",1)
+				for i,z in {-26.5,5.5} do
 					local npc=template:Clone()
 					local name,face=Cast.dress(npc,i)
-					actor(name,npc,Vector3.new(-23,3.1,z),-math.pi/2,"eat",i+1,face)
+					actor(name,npc,Vector3.new(-31,2.65,z),math.pi,"eat",i+1,face)
 				end
 				for i,role in {"waitress","chef"} do
 					local npc=template:Clone()
 					local name,face=Cast.dress(npc,i+2)
-					local position=i==1 and Vector3.new(14,3,-6) or Vector3.new(25,3,-9)
+					local position=i==1 and Vector3.new(20,3,-6) or Vector3.new(25,3,-9)
 					actor(name,npc,position,i==1 and math.pi/2 or 0,role,i+3,face)
 				end
 				template:Destroy(); template=nil
@@ -109,9 +109,9 @@ function Diner.create(profile)
 			ui.navButton(controls,"Skip opening",UDim2.fromOffset(230,0),UDim2.fromOffset(210,44),finish)
 			local function view(pos,target) return CFrame.lookAt(origin+pos,origin+target) end
 			local shots={
-				{view(Vector3.new(17,7,16),Vector3.new(-6,3,-3)),view(Vector3.new(-7,5,5),Vector3.new(-22,3.5,-2))},
-				{view(Vector3.new(-7,5,5),Vector3.new(-22,3.5,-2)),view(Vector3.new(-17,4.8,1.5),Vector3.new(-22.2,3.9,-2))},
-				{view(Vector3.new(-17,4.8,1.5),Vector3.new(-22.2,3.9,-2)),view(Vector3.new(-17.2,4.2,.8),Vector3.new(-21,3.3,-2))},
+				{view(Vector3.new(-1,8,30),Vector3.new(-22,4,-10)),view(Vector3.new(-20,6,-1),Vector3.new(-31,3.8,-10.5))},
+				{view(Vector3.new(-20,6,-1),Vector3.new(-31,3.8,-10.5)),view(Vector3.new(-27,5.2,-5.7),Vector3.new(-31,3.8,-10.5))},
+				{view(Vector3.new(-27,5.2,-5.7),Vector3.new(-31,3.8,-10.5)),view(Vector3.new(-28,4.7,-5.2),Vector3.new(-31,3.25,-8.5))},
 			}
 			connection=RunService.RenderStepped:Connect(function(dt)
 				elapsed+=dt

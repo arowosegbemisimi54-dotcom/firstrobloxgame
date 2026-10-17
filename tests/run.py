@@ -9,7 +9,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 suites = {
-    'diner-integration': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau', '-- INSERT_DINER': 'src/client/DinerOpening.luau', '-- INSERT_ART': 'src/client/DinerArt.luau', '-- INSERT_CAST': 'src/client/DinerCast.luau', '-- INSERT_OUTFIT': 'src/shared/WesternOutfit.luau', '-- INSERT_LANDSCAPE': 'src/client/LoadingLandscape.luau', '-- INSERT_LOADING': 'src/client/StoryLoading.luau'},
+    'diner-integration': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau', '-- INSERT_DINER': 'src/client/DinerOpening.luau', '-- INSERT_ART': 'src/client/DinerArt.luau', '-- INSERT_PAINTINGS': 'src/client/DinerPaintings.luau', '-- INSERT_CAST': 'src/client/DinerCast.luau', '-- INSERT_OUTFIT': 'src/shared/WesternOutfit.luau', '-- INSERT_LANDSCAPE': 'src/client/LoadingLandscape.luau', '-- INSERT_LOADING': 'src/client/StoryLoading.luau'},
     'diner': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau'},
     'character': {
         '-- INSERT_CATALOG': 'src/shared/CharacterCatalog.luau',
@@ -19,7 +19,7 @@ suites = {
         '-- INSERT_RULES': 'src/shared/PartyRules.luau',
         '-- INSERT_SERVER': 'src/server/PartyService.server.luau',
     },
-    'scenery': {'-- INSERT_DETAILS': 'src/client/DesertDetails.luau'},
+    'scenery': {'-- INSERT_DETAILS': 'src/client/DesertDetails.luau', '-- INSERT_TRAFFIC': 'src/client/DesertTraffic.luau'},
 }
 with tempfile.TemporaryDirectory() as tmp:
     for name, sources in suites.items():

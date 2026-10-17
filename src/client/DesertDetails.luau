@@ -1,4 +1,5 @@
 -- Local scenery: no uploaded assets or changes to the place's Terrain.
+local Traffic = require(script.Parent.DesertTraffic)
 local Details = {}
 
 function Details.build(part, model, origin, random)
@@ -14,6 +15,9 @@ function Details.build(part, model, origin, random)
 		return p
 	end
 	local function triangle(a,b,c,color)
+		-- Leave a real corridor through the mountain belt for both tunnel mouths.
+		local minZ,maxZ=math.min(a.Z,b.Z,c.Z),math.max(a.Z,b.Z,c.Z)
+		if minZ<110 and maxZ>66 and (math.min(a.X,b.X,c.X)>160 or math.max(a.X,b.X,c.X)<-160) then return end
 		local ab,ac,bc=b-a,c-a,c-b
 		if ab:Dot(ab)>ac:Dot(ac) and ab:Dot(ab)>bc:Dot(bc) then a,c=c,a
 		elseif ac:Dot(ac)>bc:Dot(bc) then a,b=b,a end
@@ -62,7 +66,8 @@ function Details.build(part, model, origin, random)
 	-- Broad sand drifts and rounded boulders soften the transition into the mountains.
 	for i=1,18 do
 		local angle=i*math.pi*2/18
-		local dune=part("Wind-shaped sand drift",Vector3.new(random:NextNumber(65,105),random:NextNumber(10,20),random:NextNumber(45,85)),Vector3.new(math.cos(angle)*185,-5,math.sin(angle)*185),sand,Enum.Material.Sand)
+		local driftY=math.abs(math.sin(angle)*185-88)<65 and -15 or -5
+		local dune=part("Wind-shaped sand drift",Vector3.new(random:NextNumber(65,105),random:NextNumber(10,20),random:NextNumber(45,85)),Vector3.new(math.cos(angle)*185,driftY,math.sin(angle)*185),sand,Enum.Material.Sand)
 		dune.Shape=Enum.PartType.Ball
 		dune.Orientation=Vector3.new(0,random:NextNumber(0,180),0)
 		dune.CastShadow=false
@@ -153,6 +158,7 @@ function Details.build(part, model, origin, random)
 		weed.WorldPivot=CFrame.new(origin)
 		weeds[index]={model=weed,radius=radius,age=8}
 	end
+	local traffic=Traffic.build(part,model,origin)
 	local clock,deadline,accumulator=0,2.5,0
 	local lowEffects=false
 	local function parkAll()
@@ -160,6 +166,7 @@ function Details.build(part, model, origin, random)
 	end
 	return {
 		update=function(dt,visible,motionAllowed)
+			traffic.update(dt,visible,motionAllowed)
 			if not visible or not motionAllowed then return end
 			accumulator+=dt
 			if accumulator<1/30 then return end
@@ -194,7 +201,7 @@ function Details.build(part, model, origin, random)
 			end
 		end,
 		setLowEffects=function(enabled) lowEffects=enabled; parkAll() end,
-		destroy=function() for _,weed in weeds do weed.model:Destroy() end end,
+		destroy=function() traffic.destroy(); for _,weed in weeds do weed.model:Destroy() end end,
 	}
 end
 return Details

@@ -1,4 +1,5 @@
 -- Original roadside diner set dressing. All geometry is local to the opening.
+local Paintings=require(script.Parent.DinerPaintings)
 local Art={}
 local C=Color3.fromRGB
 local V=Vector3.new
@@ -73,75 +74,106 @@ function Art.build(model,origin)
 		part("Knife blade",V(.13,.025,.52),V(x+1.2,y+.02,z-.15),chrome,Enum.Material.Metal)
 		cup(x+.75,y-.015,z+1.25)
 	end
-	part("Diner foundation",V(58,1,40),V(0,-.6,0),C(81,79,72),Enum.Material.Concrete)
-	for x=-27,27,3 do for z=-18.5,17.5,3 do
-		local tile=part("Ivory and charcoal checker tile",V(2.98,.07,2.98),V(x,-.05,z),((x+27)/3+(z+18.5)/3)%2==0 and ivory or C(37,43,43),Enum.Material.Marble)
-		tile.Reflectance=.08
+	-- A 76 × 72 dining room with booths perpendicular to the window wall.
+	part("Diner foundation",V(76,1,72),V(0,-.6,0),C(81,79,72),Enum.Material.Concrete)
+	for x=-36,36,4 do for z=-34,34,4 do
+		local tile=part("Ivory and charcoal checker tile",V(3.98,.07,3.98),V(x,-.05,z),((x+36)/4+(z+34)/4)%2==0 and ivory or C(37,43,43),Enum.Material.Marble)
+		tile.Reflectance=.06
 	end end
-	part("Back teal wall",V(58,12,.5),V(0,5.5,-20),teal,Enum.Material.Plaster)
-	part("Left plaster wall",V(.5,12,40),V(-29,5.5,0),ivory,Enum.Material.Plaster)
-	part("Right plaster wall",V(.5,12,40),V(29,5.5,0),ivory,Enum.Material.Plaster)
-	part("Window sill wall",V(58,2,.5),V(0,.8,20),teal)
-	part("Ceiling",V(58,.25,40),V(0,11.7,0),C(217,220,205))
-	for x=-28,28,4 do part("Pressed ceiling seam",V(.04,.04,40),V(x,11.54,0),chrome,Enum.Material.Metal) end
-	for z=-20,20,4 do part("Pressed ceiling seam",V(58,.04,.04),V(0,11.54,z),chrome,Enum.Material.Metal) end
-	for _,x in {-28.65,28.65} do
-		part("Red wall dado",V(.08,2.4,40),V(x,1.2,0),red)
-		for _,y in {.2,2.5,9.9,10.1} do part("Chrome wall moulding",V(.09,.06,40),V(x,y,0),chrome,Enum.Material.Metal) end
+	part("Back teal wall",V(76,14.5,.5),V(0,6.75,-36),teal,Enum.Material.Plaster)
+	part("Right plaster wall",V(.5,14.5,72),V(38,6.75,0),ivory,Enum.Material.Plaster)
+	part("Booth window base wall",V(.5,2.5,72),V(-38,1.25,0),teal)
+	part("Booth window upper wall",V(.5,4.8,72),V(-38,12.1,0),ivory,Enum.Material.Plaster)
+	for _,z in {-31,-15,1,17,33} do part("Booth window wall pier",V(.5,14.5,4),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
+	for _,z in {-34.5,34.5} do part("Booth wall end",V(.5,14.5,3),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
+	part("Front window header",V(76,2.5,.5),V(0,13.25,36),ivory,Enum.Material.Plaster)
+	part("Window sill wall",V(76,2,.5),V(0,.8,36),teal)
+	part("Ceiling",V(76,.25,72),V(0,14.5,0),C(217,220,205))
+	for x=-36,36,4 do part("Pressed ceiling seam",V(.04,.04,72),V(x,14.34,0),chrome,Enum.Material.Metal) end
+	for z=-36,36,4 do part("Pressed ceiling seam",V(76,.04,.04),V(0,14.34,z),chrome,Enum.Material.Metal) end
+	for _,x in {-37.65,37.65} do
+		for _,y in {.2,2.5,13.3} do part("Chrome wall moulding",V(.09,.06,72),V(x,y,0),chrome,Enum.Material.Metal) end
 	end
-	for _,y in {2.5,9.9} do part("Back chrome moulding",V(58,.06,.09),V(0,y,-19.65),chrome,Enum.Material.Metal) end
-	for x=-24,24,12 do
-		local window=part("Clear noon window",V(10,8,.1),V(x,6,20),C(210,231,235),Enum.Material.Glass)
+	local function daylight(window,face)
 		window.Transparency=.88; window.CastShadow=false
-		for _,dx in {-5,0,5} do part("Brushed window mullion",V(.12,8,.25),V(x+dx,6,19.9),chrome,Enum.Material.Metal) end
-		for _,y in {2,6,10} do part("Window horizontal frame",V(10,.12,.25),V(x,y,19.9),chrome,Enum.Material.Metal) end
-		local daylight=Instance.new("SurfaceLight"); daylight.Name="Noon window fill"; daylight.Face=Enum.NormalId.Front; daylight.Color=C(239,247,255); daylight.Brightness=1.1; daylight.Range=38; daylight.Angle=110; daylight.Shadows=true; daylight.Parent=window
-		part("Window sill",V(10.5,.15,.8),V(x,1.95,19.7),ivory)
+		local light=Instance.new("SurfaceLight"); light.Name="Noon window fill"; light.Face=face; light.Color=C(239,247,255); light.Brightness=1.2; light.Range=44; light.Angle=110; light.Shadows=true; light.Parent=window
 	end
-	-- Exterior seen through the glass: sunlit roadside, not a black void.
-	part("Exterior sand",V(420,1,240),V(0,-.7,130),C(193,164,117),Enum.Material.Sand)
-	part("Road outside diner",V(420,.1,22),V(0,-.12,59),C(81,81,76),Enum.Material.Asphalt)
-	for x=-190,190,18 do part("Road center dash",V(8,.02,.2),V(x,-.05,59),C(224,193,101)) end
-	sign("Original diner marquee","SUNSET\nDINER",V(-18,8,-19.6),Vector2.new(13,3.2),red,ivory)
-	sign("Kitchen sign","FRESH COFFEE  •  ALL DAY",V(10,8,-19.6),Vector2.new(12,1.2),teal,ivory)
-	for i,text in {"ROUTE 18\nTAKE THE LONG WAY","HOUSE PIE\nBAKED DAILY","GOOD FOOD\nSINCE 1958"} do
-		local x=-7+(i-1)*10
-		part("Poster chrome frame",V(4.3,3.7,.16),V(x,5.7,-19.6),chrome,Enum.Material.Metal)
-		sign("Original roadside print",text,V(x,5.7,-19.45),Vector2.new(4,3.4),i==2 and red or C(39,70,69),ivory)
+	for _,z in {-23,-7,9,25} do
+		local window=part("Booth side window",V(.1,7.2,12),V(-38,6.1,z),C(210,231,235),Enum.Material.Glass)
+		daylight(window,Enum.NormalId.Right)
+		for _,dz in {-6,0,6} do part("Side window mullion",V(.25,7.2,.12),V(-37.9,6.1,z+dz),chrome,Enum.Material.Metal) end
+		for _,y in {2.5,6.1,9.7} do part("Side window horizontal frame",V(.25,.12,12),V(-37.9,y,z),chrome,Enum.Material.Metal) end
+		part("Booth window sill",V(.85,.15,12.5),V(-37.6,2.45,z),ivory)
 	end
-	for _,z in {-13,-2,10} do
-		part("Booth chrome plinth",V(3.25,.18,7.3),V(-23,.65,z),chrome,Enum.Material.Metal)
-		part("Booth vinyl seat",V(3,1,7),V(-23,1.1,z),red,Enum.Material.Leather)
-		part("Booth backrest",V(.65,3.6,7),V(-24.5,2.6,z),red,Enum.Material.Leather)
-		for n=-3,3 do
-			part("Upholstered backrest channel",V(.7,2.7,.86),V(-24.33,2.8,z+n*.94),C(164,39,44),Enum.Material.Leather,Enum.PartType.Ball)
-			part("Seat stitched piping",V(2.9,.025,.025),V(-23,1.607,z+n*.94),C(200,82,74))
+	for x=-30,30,12 do
+		local window=part("Clear noon window",V(10,10,.1),V(x,7,36),C(210,231,235),Enum.Material.Glass)
+		daylight(window,Enum.NormalId.Front)
+		for _,dx in {-5,0,5} do part("Brushed window mullion",V(.12,10,.25),V(x+dx,7,35.9),chrome,Enum.Material.Metal) end
+		for _,y in {2,7,12} do part("Window horizontal frame",V(10,.12,.25),V(x,y,35.9),chrome,Enum.Material.Metal) end
+	end
+	part("Exterior sand",V(500,1,500),V(0,-.7,0),C(193,164,117),Enum.Material.Sand)
+	part("Road outside diner",V(420,.1,22),V(0,-.12,70),C(81,81,76),Enum.Material.Asphalt)
+	for x=-190,190,18 do part("Road center dash",V(8,.02,.2),V(x,-.05,70),C(224,193,101)) end
+	sign("Original diner marquee","SUNSET\nDINER",V(-27,10,-35.6),Vector2.new(13,3.2),red,ivory)
+	sign("Kitchen sign","FRESH COFFEE  •  ALL DAY",V(16,10,-35.6),Vector2.new(12,1.2),teal,ivory)
+	for index,art in Paintings do
+		local x=-14+(index-1)*13
+		part("Walnut painting frame",V(10.6,7,.24),V(x,7,-35.6),C(71,43,28),Enum.Material.Wood)
+		part("Painting linen mat",V(10.1,6.5,.13),V(x,7,-35.43),ivory,Enum.Material.Fabric)
+		local canvas=part("Original landscape painting",V(9.6,6,.08),V(x,7,-35.32),ivory,Enum.Material.Fabric)
+		local gui=Instance.new("SurfaceGui"); gui.Name="Painted landscape"; gui.Face=Enum.NormalId.Back; gui.CanvasSize=Vector2.new(96,60); gui.LightInfluence=.6; gui.Parent=canvas
+		for _,patch in art.patches do
+			local stroke=Instance.new("Frame"); stroke.BorderSizePixel=0; stroke.Position=UDim2.fromOffset(patch[1],patch[2]); stroke.Size=UDim2.fromOffset(patch[3],patch[4]); stroke.BackgroundColor3=art.palette[patch[5]]; stroke.Parent=gui
 		end
-		part("Backrest chrome top rail",V(.72,.08,7.1),V(-24.5,4.45,z),chrome,Enum.Material.Metal)
-		part("Chrome table edge",V(6.1,.22,7.1),V(-18.5,2.76,z),chrome,Enum.Material.Metal)
-		part("Ivory laminate tabletop",V(6,.12,7),V(-18.5,2.88,z),ivory,Enum.Material.Marble)
-		disk("Table pedestal foot",V(-18.5,.09,z),1.2,.17,chrome,Enum.Material.Metal)
-		disk("Table chrome pedestal",V(-18.5,1.4,z),.16,2.7,chrome,Enum.Material.Metal)
-		meal(-20,z,z==10 and "burger" or "steak")
-		part("Condiment caddy",V(.9,.12,.65),V(-17,3,z+2.5),chrome,Enum.Material.Metal)
+	end
+	local function condiments(x,z,y)
+		part("Condiment caddy",V(1.5,.1,.85),V(x,y,z),chrome,Enum.Material.Metal)
 		for i=1,2 do
-			disk("Condiment bottle",V(-17.3+i*.3,3.25,z+2.5),.11,.45,i==1 and C(176,39,27) or C(220,172,42))
-			disk("Bottle nozzle",V(-17.3+i*.3,3.53,z+2.5),.04,.13,ivory)
+			local bx=x-.65+i*.35
+			disk(i==1 and "Ketchup bottle" or "Mustard bottle",V(bx,y+.29,z),.13,.5,i==1 and C(176,39,27) or C(220,172,42))
+			disk("Bottle nozzle",V(bx,y+.61,z),.045,.15,ivory)
 		end
-		sign("Table menu","TODAY\nSTEAK & EGGS\nCOFFEE",V(-17,3.5,z-2.6),Vector2.new(.85,1),teal,ivory)
+		for _,dx in {.28,.58} do
+			disk(dx==.28 and "Salt shaker" or "Pepper shaker",V(x+dx,y+.19,z),.10,.28,dx==.28 and ivory or C(93,71,49))
+			disk("Shaker perforated cap",V(x+dx,y+.35,z),.105,.055,chrome,Enum.Material.Metal)
+		end
+		part("Napkin dispenser",V(.5,.65,.4),V(x,y+.36,z+.55),chrome,Enum.Material.Metal)
+		part("Paper napkins",V(.4,.12,.32),V(x,y+.71,z+.55),ivory)
 	end
-	part("Service counter base",V(5,3.1,28),V(9,1.5,0),teal)
-	for z=-13,13,.65 do part("Counter ribbed steel",V(.04,2,.06),V(6.47,1.5,z),chrome,Enum.Material.Metal) end
-	part("Counter chrome edge",V(6.15,.3,29.15),V(9,3.2,0),chrome,Enum.Material.Metal)
-	part("Counter laminate",V(6,.12,29),V(9,3.39,0),ivory,Enum.Material.Marble)
-	for z=-12,12,6 do
-		disk("Stool foot",V(4,.12,z),.72,.18,chrome,Enum.Material.Metal)
-		disk("Stool chrome stem",V(4,1.15,z),.15,2,chrome,Enum.Material.Metal)
-		ring("Stool foot ring",V(4,.8,z),.55,.055,chrome,Enum.Material.Metal,16)
-		disk("Stool chrome rim",V(4,2.12,z),.94,.16,chrome,Enum.Material.Metal)
-		disk("Red vinyl stool",V(4,2.27,z),.9,.22,red,Enum.Material.Leather)
-		cup(8,3.47,z)
+	for index,z in {-23,-7,9,25} do
+		local x=-31
+		for _,side in {-1,1} do
+			part("Booth chrome plinth",V(9,.18,2.6),V(x,.65,z+side*3.5),chrome,Enum.Material.Metal)
+			part("Facing booth vinyl seat",V(8.8,1,2.4),V(x,1.1,z+side*3.5),red,Enum.Material.Leather)
+			part("Facing booth backrest",V(8.8,3.6,.65),V(x,2.6,z+side*4.5),red,Enum.Material.Leather)
+			for n=-4,4 do
+				part("Upholstered backrest channel",V(.86,2.7,.7),V(x+n*.94,2.8,z+side*4.33),C(164,39,44),Enum.Material.Leather,Enum.PartType.Ball)
+				part("Seat stitched piping",V(.025,.025,2.3),V(x+n*.94,1.607,z+side*3.5),C(200,82,74))
+			end
+			part("Backrest chrome top rail",V(8.9,.08,.72),V(x,4.45,z+side*4.5),chrome,Enum.Material.Metal)
+		end
+		part("Chrome table edge",V(8.1,.22,4.7),V(x,2.76,z),chrome,Enum.Material.Metal)
+		part("Ivory laminate tabletop",V(8,.12,4.6),V(x,2.88,z),ivory,Enum.Material.Marble)
+		disk("Table pedestal foot",V(x,.09,z),1.2,.17,chrome,Enum.Material.Metal)
+		disk("Table chrome pedestal",V(x,1.4,z),.16,2.7,chrome,Enum.Material.Metal)
+		if index<=3 then meal(x,z-.65,index==3 and "burger" or "steak") end
+		condiments(x-2.6,z+.6,3)
+		sign("Table menu","TODAY\nSTEAK & EGGS\nCOFFEE",V(x+2.8,3.5,z+.8),Vector2.new(.85,1),teal,ivory)
 	end
+	part("Service counter base",V(5,3.1,48),V(15,1.5,0),teal)
+	for z=-23,23,.65 do part("Counter ribbed steel",V(.04,2,.06),V(12.47,1.5,z),chrome,Enum.Material.Metal) end
+	part("Counter chrome edge",V(6.15,.3,49.15),V(15,3.2,0),chrome,Enum.Material.Metal)
+	part("Counter laminate",V(6,.12,49),V(15,3.39,0),ivory,Enum.Material.Marble)
+	for z=-20,20,8 do
+		disk("Stool foot",V(10,.12,z),.72,.18,chrome,Enum.Material.Metal)
+		disk("Stool chrome stem",V(10,1.15,z),.15,2,chrome,Enum.Material.Metal)
+		ring("Stool foot ring",V(10,.8,z),.55,.055,chrome,Enum.Material.Metal,16)
+		disk("Stool chrome rim",V(10,2.12,z),.94,.16,chrome,Enum.Material.Metal)
+		disk("Red vinyl stool",V(10,2.27,z),.9,.22,red,Enum.Material.Leather)
+		part("Counter chair back",V(.2,1.1,1.8),V(9.15,3,z),red,Enum.Material.Leather)
+		cup(14,3.47,z)
+	end
+	for _,z in {-16,0,16} do condiments(16,z,3.5) end
 	part("Kitchen partition",V(.4,1.2,27),V(20,.6,-4),ivory)
 	part("Stainless range",V(6,3,4),V(25,1.5,-13),chrome,Enum.Material.Metal)
 	for _,x in {23.8,26.2} do
@@ -155,14 +187,16 @@ function Art.build(model,origin)
 	part("Kitchen prep table",V(6,.2,3),V(25,2.9,-4),chrome,Enum.Material.Metal)
 	for _,x in {22.4,27.6} do for _,z in {-5,-3} do part("Prep table leg",V(.15,2.8,.15),V(x,1.4,z),chrome,Enum.Material.Metal) end end
 	part("Cutting board",V(2,.12,1.2),V(25,3.08,-4),C(148,107,62),Enum.Material.Wood)
-	for _,pos in {V(-17,11,-8),V(-17,11,8),V(8,11,0),V(25,11,-10)} do
-		disk("Ceiling lamp chrome ring",pos,.9,.14,chrome,Enum.Material.Metal)
-		local fixture=disk("Opal ceiling diffuser",pos-V(0,.1,0),.8,.18,C(255,239,210),Enum.Material.Neon)
-		local light=Instance.new("PointLight"); light.Color=C(255,233,199); light.Brightness=.65; light.Range=22; light.Parent=fixture
-	end
-	for _,x in {-7,17} do
-		part("Ceiling vent frame",V(4,.09,2),V(x,11.5,3),chrome,Enum.Material.Metal)
-		for i=1,12 do part("Vent louvre",V(.16,.07,1.75),V(x-1.9+i*.29,11.44,3),C(55,64,63),Enum.Material.Metal) end
+	for _,x in {-30,-12,14} do for _,z in {-23,-7,9,25} do
+		disk("Pendant ceiling rose",V(x,14.2,z),.35,.15,chrome,Enum.Material.Metal)
+		disk("Hanging lamp stem",V(x,12.5,z),.045,3.2,C(55,53,46),Enum.Material.Metal)
+		disk("Pendant brass cap",V(x,10.85,z),.38,.16,C(163,135,78),Enum.Material.Metal)
+		local globe=part("Hanging opal globe",V(1.55,1.65,1.55),V(x,10.15,z),C(255,242,215),Enum.Material.Neon,Enum.PartType.Ball)
+		local light=Instance.new("PointLight"); light.Color=C(255,233,206); light.Brightness=.65; light.Range=23; light.Parent=globe
+	end end
+	for _,x in {-7,27} do
+		part("Ceiling vent frame",V(4,.09,2),V(x,14.3,3),chrome,Enum.Material.Metal)
+		for i=1,12 do part("Vent louvre",V(.16,.07,1.75),V(x-1.9+i*.29,14.24,3),C(55,64,63),Enum.Material.Metal) end
 	end
 end
 
