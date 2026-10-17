@@ -6,6 +6,7 @@ local Outfit=require(shared.WesternOutfit)
 local Art=require(script.Parent.DinerArt)
 local Cast=require(script.Parent.DinerCast)
 local Lighting=game:GetService("Lighting")
+local Broadcast=require(script.Parent.DinerBroadcast)
 local Diner={}
 
 function Diner.create(profile)
@@ -14,6 +15,7 @@ function Diner.create(profile)
 	local origin=Vector3.new(0,14000,0)
 	local actors={}
 	Art.build(model,origin)
+	local broadcast=Broadcast.create(model,origin)
 	local lightingSnapshot
 	local effectSnapshot={}
 	local blank=Instance.new("HumanoidDescription")
@@ -25,6 +27,7 @@ function Diner.create(profile)
 			for effect,enabled in effectSnapshot do if effect.Parent then effect.Enabled=enabled end end
 			lightingSnapshot=nil
 		end
+		broadcast.destroy()
 		model:Destroy()
 	end
 	local function prepare(modelToPrepare)
@@ -95,6 +98,7 @@ function Diner.create(profile)
 			local hud=ui.make("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ZIndex=25},root)
 			for _,y in {0,1} do ui.make("Frame",{Size=UDim2.new(1,0,.07,0),Position=UDim2.fromScale(0,y),AnchorPoint=Vector2.new(0,y),BackgroundColor3=Color3.new(),BorderSizePixel=0},hud) end
 			local controls=ui.make("Frame",{Position=UDim2.fromScale(.5,.89),AnchorPoint=Vector2.new(.5,0),Size=UDim2.fromOffset(440,44),BackgroundTransparency=1},hud)
+			local subtitle=ui.make("TextLabel",{Name="Blox News subtitles",Position=UDim2.fromScale(.1,.72),Size=UDim2.fromScale(.8,.14),BackgroundColor3=Color3.fromRGB(12,16,22),BackgroundTransparency=.18,TextColor3=Color3.fromRGB(245,236,213),TextSize=20,TextWrapped=true,Font=Enum.Font.SpecialElite,Text="",Visible=false},hud)
 			local controlScale=ui.make("UIScale",{},controls)
 			local function resize() controlScale.Scale=math.min(root.AbsoluteSize.X/480,1) end
 			local resizeConnection=root:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize); resize()
@@ -118,8 +122,10 @@ function Diner.create(profile)
 				Timeline.advance(timeline,dt)
 				if timeline.done then finish(); return end
 				local t=math.clamp(timeline.elapsed/Timeline.durations[timeline.shot],0,1)
-				local blend=timeline.shot==1 and t or t*t*(3-2*t)
-				local shot=shots[timeline.shot]
+				local blend=timeline.shot>3 and 1 or (timeline.shot==1 and t or t*t*(3-2*t))
+				local shot=shots[math.min(timeline.shot,#shots)]
+				broadcast.update(timeline.shot,timeline.elapsed,reducedMotion())
+				subtitle.Text=Timeline.dialogue[timeline.shot] or ""; subtitle.Visible=subtitle.Text~=""
 				local camera=workspace.CurrentCamera
 				if camera then camera.CameraType=Enum.CameraType.Scriptable; camera.FieldOfView=52; camera.CFrame=reducedMotion() and shot[2] or shot[1]:Lerp(shot[2],blend) end
 				for _,person in actors do

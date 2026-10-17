@@ -127,7 +127,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -147,6 +147,9 @@ modules.landscape=Landscape
 local Loading=(function()
 -- INSERT_LOADING
 end)()
+modules.broadcast=(function()
+-- INSERT_BROADCAST
+end)()
 local Diner=(function()
 -- INSERT_DINER
 end)()
@@ -157,7 +160,7 @@ diner.prepare()
 check(requestedRig=="HumanoidRigTypeR6","diner requests standard R6 NPCs")
 local cast={}
 for _,obj in objects do
- if obj.ClassName=="Model" and obj.Parent and obj.Parent.Name=="ShirtsAndSkins_DinerOpening" then table.insert(cast,obj) end
+ if obj.ClassName=="Model" and obj.Parent and obj.Parent.Name=="ShirtsAndSkins_DinerOpening" and obj:FindFirstChildOfClass("Humanoid") then table.insert(cast,obj) end
 end
 check(#cast==5,"diner has player, two other customers, waitress, chef")
 local faceCount=0
@@ -234,6 +237,6 @@ for _,obj in objects do if obj.ClassName=="ViewportFrame" then assert(obj.destro
 check(true,"loading geometry is destroyed after success and failure")
 local natural=Diner.create({gender="Boy",outfit={Hat="none"}}); natural.prepare()
 natural.play(root,ui,function() finishes+=1 end,function() return true end)
-render.callback(10)
+render.callback(100)
 check(finishes==2 and lighting.ClockTime==17.7 and grade.Enabled==true,"natural cutscene completion also restores menu lighting")
 print(string.format("%d diner integration checks passed",checks))
