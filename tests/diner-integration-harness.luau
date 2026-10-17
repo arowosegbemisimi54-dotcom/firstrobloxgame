@@ -231,6 +231,15 @@ for _,person in cast do
  end
 end
 check(faceCount==6,"all six original NPCs have locally authored animated faces")
+local small=rig(); small.Head.Size=Vector.new(1,1,1)
+local large=rig(); large.Head.Size=Vector.new(2,1.5,1.4)
+modules.cast.dress(small,2); modules.cast.dress(large,2)
+local hairSmall,hairLarge
+for _,p in small:GetDescendants() do if p.Name=="Fitted hair crown" then hairSmall=p end end
+for _,p in large:GetDescendants() do if p.Name=="Fitted hair crown" then hairLarge=p end end
+check(hairSmall and hairLarge and math.abs(hairLarge.Size.X/hairSmall.Size.X-2)<.0001 and math.abs(hairLarge.Size.Y/hairSmall.Size.Y-1.5)<.0001 and math.abs(hairLarge.Size.Z/hairSmall.Size.Z-1.4)<.0001,"NPC hair fits each head's width, height and depth independently")
+small:Destroy(); large:Destroy()
+
 local parts=0
 local counts={}
 for _,obj in objects do

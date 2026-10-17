@@ -93,7 +93,21 @@ function Props.build(ctx)
   local light=Instance.new("PointLight"); light.Color=C(255,54,29); light.Range=19; light.Brightness=2; light.Parent=beacon
   local lamp=attach(car,"Cruiser spotlamp",V(.4,.4,.4),V(2,3,-1.4),C(213,210,179))
   local beam=Instance.new("SpotLight"); beam.Face=Enum.NormalId.Front; beam.Range=45; beam.Angle=55; beam.Brightness=2; beam.Parent=lamp
-  police[i]={model=car,light=light,x=-180-i*18,z=140}
+  local pivot=car:GetPivot()
+  local wheels={}
+  for _,obj in car:GetDescendants() do
+   if obj:IsA("BasePart") and (obj.Name=="Parked tire" or obj.Name=="Parked hubcap" or obj.Name=="Whitewall tire ring" or obj.Name=="Polished inset hubcap") then
+    local offset=pivot:ToObjectSpace(obj.CFrame)
+    table.insert(wheels,{part=obj,offset=offset,front=offset.Position.Z<0})
+   end
+  end
+  local door=Instance.new("Model"); door.Name="Patrol driver door"; door.Parent=car
+  local hinge=pivot*CFrame.new(-1.94,2.5,-1.4)
+  for _,spec in {{"Patrol door panel",V(.12,.9,2.3),V(-1.94,1.9,-.25),C(32,38,41)}, {"Patrol door window",V(.08,.95,2.1),V(-1.94,2.9,-.25),C(67,94,99)}, {"Patrol door handle",V(.18,.1,.35),V(-2.04,2.35,.52),C(192,196,184)}} do
+   local item=attach(car,spec[1],spec[2],spec[3],spec[4]); item.Parent=door
+  end
+  door.WorldPivot=hinge
+  police[i]={model=car,light=light,x=-180-i*18,z=140,yaw=-math.pi/2,speed=0,wheels=wheels,door=door,doorOffset=pivot:ToObjectSpace(hinge)}
  end
  return {cargoBags=cargoBags,folder=folder,payment=payment,airborne=airborne,truck=truck,steam=steam,burnout=burnout,crew=crew,officers=officers,police=police}
 end

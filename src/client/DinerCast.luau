@@ -65,6 +65,12 @@ function Cast.dress(rig,index)
             size=V(size.X*sx,size.Y*sy,size.Z*sz)
             offset=CFrame.new(offset.Position.X*sx,offset.Position.Y*sy,offset.Position.Z*sz)*offset.Rotation
         end
+        if body==head then
+            -- Author in a 2 x 1 x 1 head space, then fit each actual R15 head.
+            local sx,sy,sz=head.Size.X/2,head.Size.Y,head.Size.Z
+            size=shape==Enum.PartType.Cylinder and V(size.X*sy,size.Y*sx,size.Z*sz) or V(size.X*sx,size.Y*sy,size.Z*sz)
+            offset=CFrame.new(offset.Position.X*sx,offset.Position.Y*sy,offset.Position.Z*sz)*offset.Rotation
+        end
         local p=Instance.new("Part"); p.Name,p.Size,p.Color=name,size,color; p.Material=material or Enum.Material.Fabric
 		p.CanCollide,p.CanTouch,p.CanQuery,p.Massless=false,false,false,true
 		p.CFrame=body.CFrame*offset; if shape then p.Shape=shape end; p.Parent=clothes
@@ -105,9 +111,14 @@ function Cast.dress(rig,index)
 	for i=1,4 do piece(torso,"Mother of pearl button",V(.065,.065,.07),CFrame.new(0,.48-i*.29,front-.04),C(217,202,159),Enum.PartType.Ball) end
 	piece(torso,"Leather belt",V(2.035,.14,1.035),CFrame.new(0,-.88,0),boot,nil,Enum.Material.Leather)
 	piece(torso,"Brass belt buckle",V(.23,.19,.08),CFrame.new(0,-.88,front-.02),C(174,142,74),nil,Enum.Material.Metal)
-	-- Hair follows the standard head rather than covering its face.
-	piece(head,"Sculpted hair cap",V(1.9,.45,1.05),CFrame.new(0,.48,.06),person.Hair,Enum.PartType.Ball)
-	for _,side in {-1,1} do piece(head,"Sideburn",V(.18,.43,.5),CFrame.new(side*.85,.21,.12),person.Hair,Enum.PartType.Ball) end
+	-- A continuous crown, rear panel and temples follow the head envelope.
+	-- Small overlap hides seams; the forehead and face remain unobstructed.
+	piece(head,"Fitted hair crown",V(2.06,.30,1.08),CFrame.new(0,.54,.015),person.Hair,Enum.PartType.Ball)
+	piece(head,"Fitted rear hair",V(1.88,.55,.19),CFrame.new(0,.23,.48),person.Hair,Enum.PartType.Ball)
+	for _,side in {-1,1} do
+		piece(head,"Fitted temple hair",V(.23,.43,.77),CFrame.new(side*.91,.30,.11),person.Hair,Enum.PartType.Ball)
+		piece(head,"Tapered sideburn",V(.12,.26,.19),CFrame.new(side*.94,.08,-.12),person.Hair,Enum.PartType.Ball)
+	end
 	if person.Style=="surveyor" then
 		for _,side in {-1,1} do for i=1,5 do piece(torso,"Waistcoat pinstripe",V(.015,1.25,.012),CFrame.new(side*(.36+i*.105),-.1,front-.046),C(120,115,95)) end end
 		piece(torso,"Narrow necktie",V(.13,.66,.08),CFrame.new(0,.4,front-.08),C(66,49,39))
@@ -115,14 +126,14 @@ function Cast.dress(rig,index)
 		piece(head,"Pinched felt crown",V(1.65,.74,1.12),CFrame.new(0,.96,0),C(72,60,44),Enum.PartType.Ball)
 		piece(head,"Hat ribbon",V(1.65,.12,1.12),CFrame.new(0,.77,0),C(34,30,25))
 	elseif person.Style=="regular" or person.Style=="server" then
-		piece(head,"Coiled hair bun",V(.77,.7,.7),CFrame.new(0,.36,.65),person.Hair,Enum.PartType.Ball)
-		for i=1,4 do piece(head,"Swept hair wave",V(.62,.22,.4),CFrame.new(-.65+i*.31,.39,-.43)*CFrame.Angles(0,0,-.22),person.Hair,Enum.PartType.Ball) end
+		piece(head,"Coiled hair bun",V(.60,.52,.48),CFrame.new(0,.28,.68),person.Hair,Enum.PartType.Ball)
+		for i=1,4 do piece(head,"Swept hair wave",V(.55,.19,.29),CFrame.new(-.78+i*.31,.52,-.40)*CFrame.Angles(0,0,-.22),person.Hair,Enum.PartType.Ball) end
 		for _,side in {-1,1} do piece(head,"Small brass earring",V(.09,.15,.07),CFrame.new(side*.91,-.2,0),C(202,160,71),Enum.PartType.Ball,Enum.Material.Metal) end
 		if person.Style=="server" then
 			piece(torso,"Ivory apron",V(1.32,1.07,.06),CFrame.new(0,-.53,front-.1),C(236,225,200))
 			piece(torso,"Apron waistband",V(2.08,.13,1.08),CFrame.new(0,-.18,0),C(236,225,200))
 			piece(torso,"Server name badge",V(.44,.18,.06),CFrame.new(-.55,.45,front-.1),C(230,215,168),nil,Enum.Material.Metal)
-			piece(head,"Hair ribbon",V(.62,.12,.12),CFrame.new(0,.52,.87),C(111,158,146))
+			piece(head,"Hair ribbon",V(.62,.12,.12),CFrame.new(0,.40,.86),C(111,158,146))
 		end
 	else
 		piece(head,"Cook cap band",V(1.85,.21,1.15),CFrame.new(0,.56,0),C(238,231,209))

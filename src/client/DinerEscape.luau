@@ -82,6 +82,18 @@ function Escape.start(ctx)
    for i,w in ext.vehicle.wheels do w.model:PivotTo(vehicle:GetPivot()*wheelOffsets[i]*CFrame.Angles(wheelRoll,0,0)) end
   end
  end
+ local function animateCruiser(police,steer)
+  local pivot=police.model:GetPivot()
+  local pos=pivot.Position
+  local distance=police.lastPosition and (pos-police.lastPosition).Magnitude or 0
+  police.lastPosition=pos
+  police.roll=(police.roll or 0)+math.min(distance,10)/1.08
+  for _,wheel in police.wheels do
+   local localCF=wheel.offset
+   -- Tires are cylinders whose axle is local X.
+   wheel.part.CFrame=pivot*localCF*CFrame.Angles(0,wheel.front and steer or 0,0)*CFrame.Angles(police.roll,0,0)
+  end
+ end
  local function pose(person,pos,angle,walk,seated)
   Motion.pose(person,origin,pos,angle,frameDt,seated,elapsed)
  end
@@ -171,7 +183,7 @@ function Escape.start(ctx)
  end
  local function startDrive()
   car={x=290,z=140,yaw=-math.pi/2,speed=32}; mission={clearTime=0,bustTime=0,lost=false}
-  for i,police in props.police do police.x=195-i*25; police.z=140 end
+  for i,police in props.police do police.x=195-i*25; police.z=140; police.yaw=-math.pi/2; police.speed=38; police.lastPosition=nil; police.door:PivotTo(police.model:GetPivot()*police.doorOffset) end
   state.phase="drive"; state.time=0; title.Visible=false; subtitle.Visible=false
   objective.Visible=true; objective.Text="Lose the remaining local patrol units and reach the safehouse."
   hint.Text="WASD / stick · Drive   Drag / right stick · Look   V · Cabin"
@@ -255,10 +267,25 @@ function Escape.start(ctx)
   elseif name=="police" then
    view(V(0,105,26),V(0,0,-5),65,dt,false)
    for i,police in props.police do
-    local a=math.clamp(t/5,0,1); local pos
-    if a<.5 then pos=V(-180-i*18,.7,140):Lerp(V(-80-i*10,.7,65),a*2) else pos=V(-80-i*10,.7,65):Lerp(V(-23-i*12,.7,-52),a*2-1) end
-    positionVehicle(police.model,pos,a<.6 and 0 or -math.pi/2)
-    if t>5 then local v=math.clamp((t-5)/2,0,1); pose(props.officers[i],V(-23-i*12,3,-47):Lerp(V(-13-i*4,3,-49),v),-math.pi/2,v<1 and 1 or 0,false); ctx.setJoint(props.officers[i],"RightShoulder",CFrame.Angles(1.4,0,0)) end
+    local route=Rules.policeArrival(i,t)
+    positionVehicle(police.model,V(route.x,.7,route.z),route.yaw)
+    animateCruiser(police,route.steer)
+    local driverPosition=(police.model:GetPivot()*CFrame.new(-.9,1.65,.1)).Position-origin
+    if not route.stopped then
+     pose(props.officers[i],driverPosition,route.yaw,0,true)
+    else
+     local exitTime=t-route.duration
+     local doorOpen=math.sin(math.clamp(exitTime/.8,0,1)*math.pi/2)
+     police.door:PivotTo(police.model:GetPivot()*police.doorOffset*CFrame.Angles(0,doorOpen*1.15,0))
+     local v=math.clamp((exitTime-.6)/2.1,0,1)
+     local from=V(route.x+1,3,route.z-4)
+     local to=V(-13-i*4,3,-49)
+     if exitTime<.6 then
+      pose(props.officers[i],driverPosition:Lerp(from,exitTime/.6),route.yaw,0,exitTime<.25)
+     else
+      pose(props.officers[i],from:Lerp(to,v),-math.pi/2,v<1 and 1 or 0,false)
+     end
+    end
    end
   elseif name=="burnout" then
    seatHero(); view(V(54,1.3,-58),V(62,1.7,-53),66,dt,false)
@@ -344,10 +371,10 @@ function Escape.start(ctx)
    local nearest=math.huge
    for _,police in props.police do
     if not mission.lost then
-     local dx=car.x-police.x; local dz=car.z-police.z; local distance=math.sqrt(dx*dx+dz*dz)
-     local step=math.min(distance,dt*53)
-     if distance>.01 then police.x+=dx/distance*step; police.z=math.clamp(police.z+dz/distance*step,130,150) end
-     positionVehicle(police.model,V(police.x,.7,police.z),math.atan2(-dx,-dz)); nearest=math.min(nearest,distance)
+     local distance=Rules.pursue(police,car,dt)
+     positionVehicle(police.model,V(police.x,.7,police.z),police.yaw)
+     animateCruiser(police,police.steer)
+     nearest=math.min(nearest,distance)
     end
    end
    local result=Rules.mission(mission,car,nearest,dt)
@@ -374,6 +401,9 @@ function Escape.start(ctx)
    end
    if result then finishMission(result) end
   end
+  for _,person in ctx.actors do Motion.flush(person) end
+  for _,person in props.crew do Motion.flush(person) end
+  for _,person in props.officers do Motion.flush(person) end
  end))
  return clear
 end

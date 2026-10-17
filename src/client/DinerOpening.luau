@@ -200,6 +200,7 @@ function Diner.create(profile)
 							person.props.patty.CFrame=person.props.pan.CFrame*CFrame.new(.16+toss*.6,0,0)*CFrame.Angles(0,0,toss*math.pi)
 						end
 					end
+					Motion.flush(person)
 				end
 			end)
 			return finish

@@ -59,6 +59,62 @@ function Rules.drive(car,throttle,steer,brake,dt)
  if collision then car.speed=-car.speed*.2 else car.x=x; car.z=z end
  return collision
 end
+-- Two quarter-circle turns connect the highway, west service lane and rear yard.
+-- Distance, heading and steering come from the same path, including braking.
+function Rules.policeArrival(index,time)
+ local lane=-105-(index-1)*12
+ local start=-180-index*18
+ local finish=-23-index*12
+ local radius=18
+ local first=lane-radius-start
+ local vertical=156
+ local last=finish-(lane+radius)
+ local arc=radius*math.pi/2
+ local length=first+arc+vertical+arc+last
+ local duration=6.2+(index-1)*.35
+ local braking=1.4
+ local cruise=length/(duration-braking/2)
+ local t=math.clamp(time,0,duration)
+ local brakingTime=math.max(0,t-(duration-braking))
+ local distance=cruise*(t-brakingTime*brakingTime/(2*braking))
+ local speed=cruise*(1-brakingTime/braking)
+ local x,z,dx,dz,steer
+ steer=0
+ if distance<first then x=start+distance; z=140; dx=1; dz=0
+ elseif distance<first+arc then
+  local a=(distance-first)/radius
+  x=lane-radius+radius*math.sin(a); z=122+radius*math.cos(a)
+  dx=math.cos(a); dz=-math.sin(a); steer=-.38
+ elseif distance<first+arc+vertical then
+  x=lane; z=122-(distance-first-arc); dx=0; dz=-1
+ elseif distance<first+arc+vertical+arc then
+  local a=(distance-first-arc-vertical)/radius
+  x=lane+radius-radius*math.cos(a); z=-34-radius*math.sin(a)
+  dx=math.sin(a); dz=-math.cos(a); steer=.38
+ else
+  x=lane+radius+distance-first-arc-vertical-arc; z=-52; dx=1; dz=0
+ end
+ return {x=x,z=z,yaw=math.atan2(-dx,-dz),speed=speed,steer=steer,stopped=time>=duration,duration=duration}
+end
+-- Pursuit advances along the cruiser's heading with bounded steering, rather
+-- than translating diagonally toward the player's position.
+function Rules.pursue(police,target,dt)
+ dt=math.clamp(dt,0,.05)
+ local dx,dz=target.x-police.x,math.clamp(target.z,133,147)-police.z
+ local distance=math.sqrt(dx*dx+dz*dz)
+ local desired=math.atan2(-dx,-dz)
+ local error=(desired-police.yaw+math.pi)%(2*math.pi)-math.pi
+ local desiredSpeed=distance<10 and 0 or 53*math.max(.28,1-math.abs(error)/math.pi)
+ police.speed+=(desiredSpeed-police.speed)*math.min(1,dt*1.8)
+ local turn=math.clamp(error,-.8*dt,.8*dt)*math.min(1,police.speed/12)
+ police.yaw+=turn
+ police.steer=-turn/math.max(dt,.001)*.4
+ local x=police.x-math.sin(police.yaw)*police.speed*dt
+ local z=police.z-math.cos(police.yaw)*police.speed*dt
+ if z>=130 and z<=150 then police.x=x; police.z=z else police.speed=math.max(0,police.speed-60*dt) end
+ return distance
+end
+
 function Rules.mission(mission,car,nearest,dt)
  if mission.result then return mission.result end
  if nearest>150 then mission.clearTime+=dt else mission.clearTime=0 end

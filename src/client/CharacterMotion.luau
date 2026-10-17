@@ -1,5 +1,47 @@
 -- Distance-driven R15 locomotion. Phase advances with travel, not the render clock.
 local Motion={}
+-- Scene rigs are kinematic: solve their complete joint tree after PivotTo.
+-- This avoids cached model offsets and Humanoid/Animator evaluation undoing a
+-- procedural pose between the render callback and the physics step.
+function Motion.bind(person)
+ local root=assert(person.rig:FindFirstChild("HumanoidRootPart"),"Scene rig needs a root")
+ local edges={}
+ for _,item in person.rig:GetDescendants() do
+  if item:IsA("BasePart") then item.Anchored=true
+  elseif item:IsA("Motor6D") or item:IsA("Weld") or item:IsA("WeldConstraint") then
+   if item.Part0 and item.Part1 then
+    local fixed=item:IsA("WeldConstraint")
+    table.insert(edges,{joint=item,a=item.Part0,b=item.Part1,fixed=fixed,
+     offset=fixed and item.Part0.CFrame:ToObjectSpace(item.Part1.CFrame) or nil})
+    item.Enabled=false
+    if item:IsA("Motor6D") then item.Transform=CFrame.new() end
+   end
+  end
+ end
+ local known={[root]=true}; local ordered={}
+ for _=1,#edges do
+  local added=false
+  for _,edge in edges do
+   if not edge.used and known[edge.a]~=known[edge.b] then
+    edge.used=true; edge.reverse=known[edge.b]==true
+    known[edge.a]=true; known[edge.b]=true
+    table.insert(ordered,edge); added=true
+   end
+  end
+  if not added then break end
+ end
+ person.poseLinks=ordered
+end
+function Motion.flush(person)
+ if not person.poseLinks then Motion.bind(person) end
+ for _,edge in person.poseLinks do
+  if edge.joint.Parent and edge.a.Parent and edge.b.Parent then
+   local offset=edge.fixed and edge.offset or edge.joint.C0*edge.joint.C1:Inverse()
+   if edge.reverse then edge.a.CFrame=edge.b.CFrame*offset:Inverse()
+   else edge.b.CFrame=edge.a.CFrame*offset end
+  end
+ end
+end
 function Motion.joint(person,name,rotation)
  local aliases={LeftShoulder="Left Shoulder",RightShoulder="Right Shoulder",LeftHip="Left Hip",RightHip="Right Hip"}
  local data=person.joints[name] or person.joints[aliases[name]]
@@ -37,6 +79,11 @@ function Motion.pose(person,origin,pos,yaw,dt,seated,time)
  person.motionPosition=pos
  person.distance=(person.distance or 0)+travel
  local speed=dt>0 and travel/dt or 0
+ -- Face the direction of travel; do not strafe a running cycle across the lot.
+ if not seated and travel>.001 then
+  local delta=pos-previous
+  yaw=math.atan2(-delta.X,-delta.Z)
+ end
  local pose=Motion.sample(person.distance,speed,seated,person.style,time)
  for _,joint in {"LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle","LeftShoulder","RightShoulder","LeftElbow","RightElbow"} do Motion.joint(person,joint,CFrame.Angles(pose[joint],0,0)) end
  Motion.joint(person,"Waist",CFrame.Angles(pose.lean,pose.twist,0))

@@ -67,3 +67,22 @@ Both TikTok URLs and the YouTube Short supplied on 2026-10-17 were blocked by th
 execution environment's HTTP proxy (403). Their contents were not viewed. The
 changes above use the user's written notes and supplied screenshots; video-specific
 handling adjustments await accessible clips.
+
+
+### NPC hair, R15 pose and patrol follow-up
+
+- Scene characters now solve their R15 joint tree and attached garments after
+  each rendered model move. This includes reversed accessory welds. Scene parts
+  are anchored and joints disabled so physics does not overwrite the authored
+  walk, run, seated and aiming poses. Live player rigs are not modified by this
+  scene-only solver.
+- Hair crown, temples, rear panel, bun and headwear fit each NPC head's dimensions.
+- Patrol arrival follows two tangent quarter-circle turns with distance-based
+  wheel rotation, front wheel steering and final braking. Drivers stay seated
+  until stopping, open their doors, step out and approach on foot. Pursuit uses
+  bounded steering and forward motion instead of direct diagonal translation.
+- Studio checks still required: inspect all diner customers and workers from
+  front/side/rear; observe crew and player knees/boots over several strides;
+  watch both cruisers turn and stop, then both officers exit and approach. Check
+  garments and facial features follow joints throughout, including at low FPS.
+  Automated tests cover transforms and path continuity, not final visual quality.
