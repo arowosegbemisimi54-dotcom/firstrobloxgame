@@ -1,4 +1,5 @@
 -- Bounded local scenery traffic; one departure every four seconds.
+local Cars=require(script.Parent.VintageCars)
 local Traffic={}
 function Traffic.build(part,parent,origin)
 	local V=Vector3.new
@@ -28,6 +29,7 @@ function Traffic.build(part,parent,origin)
 	local pool={}
 	local colors={C(94,127,119),C(141,65,47),C(197,176,126),C(51,68,84)}
 	local function vehicle(index,motorcycle)
+		local variant=(index-1)%4+1
 		local model=Instance.new("Model"); model.Name=motorcycle and "Antique motorcycle with rider" or "Antique touring car"
 		local function p(name,size,at,color,shape,rotation)
 			local obj=part(name,size,at,color,Enum.Material.SmoothPlastic,rotation)
@@ -61,26 +63,12 @@ function Traffic.build(part,parent,origin)
 				body(side<0 and "Left Leg" or "Right Leg",V(.48,1.7,.48),V(side*.62,.95,.9),C(47,53,57),CFrame.Angles(.5,0,side*.15))
 			end
 		else
-			local paint=colors[index%4+1]
-			p("Long touring chassis",V(5,.5,10),V(0,.7,0),dark)
-			p("Rounded antique body",V(4.8,2.0,8.8),V(0,1.65,0),paint,Enum.PartType.Ball)
-			p("Long vintage hood",V(4.3,1.1,3.2),V(0,1.9,-3),paint)
-			p("Passenger cabin",V(3.8,2,3.6),V(0,2.9,.6),paint)
-			p("Rounded roof",V(4.0,.45,3.9),V(0,3.92,.6),paint,Enum.PartType.Ball)
-			p("Split windshield",V(3.3,1.25,.08),V(0,3,-1.25),C(74,99,102))
-			p("Windshield divider",V(.08,1.3,.12),V(0,3,-1.3),metal)
-			for _,side in {-1,1} do
-				p("Side cabin window",V(.08,1.2,2.6),V(side*1.94,3,.6),C(74,99,102))
-				p("Running board",V(.7,.18,6),V(side*2.5,.65,.3),dark)
-				p("Round vintage headlight",V(.65,.65,.22),V(side*1.6,1.9,-4.65),C(243,215,154),Enum.PartType.Ball)
-				for _,z in {-3,3} do wheel(side*2.25,z,1.05) end
-			end
-			p("Chrome front bumper",V(4.9,.24,.25),V(0,.9,-4.8),metal)
-			for x=-.6,.6,.2 do p("Vertical grille bar",V(.08,.9,.1),V(x,1.65,-4.69),metal) end
+			Cars.build(p,wheel,variant)
+			model:SetAttribute("VehicleDesign",Cars.names[variant])
 		end
 		model.WorldPivot=CFrame.new(origin)
 		model.Parent=nil
-		return {model=model,age=math.huge,motorcycle=motorcycle}
+		return {model=model,age=math.huge,motorcycle=motorcycle,variant=variant}
 	end
 	-- Separate pools allow a car at every four-second mark, with motorcycles
 	-- interleaved two seconds after every third departure. No new instances are made while running.
@@ -88,9 +76,9 @@ function Traffic.build(part,parent,origin)
 	for i=9,11 do pool[i]=vehicle(i,true) end
 	local clock,nextDeparture,departures,nextBike,bikeDepartures=0,4,0,14,0
 	local lifetime=28
-	local function launch(motorcycle,direction,age)
+	local function launch(motorcycle,direction,age,variant)
 		for _,entry in pool do
-			if entry.motorcycle==motorcycle and entry.age>=lifetime then
+			if entry.motorcycle==motorcycle and entry.age>=lifetime and (motorcycle or entry.variant==variant) then
 				entry.age=age; entry.direction=direction; entry.model.Parent=parent
 				entry.model:SetAttribute("DepartureTime",clock-age); entry.model:SetAttribute("TravelDirection",direction)
 				return
@@ -107,7 +95,7 @@ function Traffic.build(part,parent,origin)
 				local age=clock-nextDeparture
 				if age<lifetime then
 					local direction=departures%2==0 and -1 or 1
-					launch(false,direction,age)
+					launch(false,direction,age,(departures-1)%4+1)
 				end
 				nextDeparture+=4
 			end

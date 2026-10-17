@@ -19,7 +19,7 @@ suites = {
         '-- INSERT_RULES': 'src/shared/PartyRules.luau',
         '-- INSERT_SERVER': 'src/server/PartyService.server.luau',
     },
-    'scenery': {'-- INSERT_DETAILS': 'src/client/DesertDetails.luau', '-- INSERT_TRAFFIC': 'src/client/DesertTraffic.luau'},
+    'scenery': {'-- INSERT_DETAILS': 'src/client/DesertDetails.luau', '-- INSERT_TRAFFIC': 'src/client/DesertTraffic.luau', '-- INSERT_CARS': 'src/client/VintageCars.luau'},
 }
 with tempfile.TemporaryDirectory() as tmp:
     for name, sources in suites.items():

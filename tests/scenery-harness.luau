@@ -59,6 +59,11 @@ function random:NextNumber(a,b)
 	seed=(seed*48271)%2147483647
 	return a+(b-a)*seed/2147483647
 end
+local Cars=(function()
+-- INSERT_CARS
+end)()
+local script={Parent={VintageCars="cars",DesertTraffic="traffic"}}
+local function require(key) assert(key=="cars"); return Cars end
 local Traffic=(function()
 -- INSERT_TRAFFIC
 end)()
@@ -92,6 +97,7 @@ for _,obj in objects do
 end
 check(#cars==8 and #bikes==3,"bounded traffic pools contain antique cars and motorcycle riders")
 local lastCarSpawn=nil
+local observedDesigns={}
 local carSpawns,bikeSpawns=0,0
 local wasActive={}
 local lastSpawn=nil
@@ -104,6 +110,7 @@ for step=1,1200 do
 			local time=step*.1
 			if lastCarSpawn then assert(math.abs(time-lastCarSpawn-4)<.11,"car cadence drifted from four seconds") end
 			lastCarSpawn=time; carSpawns+=1
+			table.insert(observedDesigns,car:GetAttribute("VehicleDesign"))
 		end
 		wasActive[car]=car:GetAttribute("DepartureTime")
 	end
@@ -123,6 +130,8 @@ for step=1,1200 do
 end
 check(spawns>30 and #objects==initialCount,"two minute simulation preserves cadence with no allocation growth")
 check(carSpawns>=29 and bikeSpawns>=9,"cars depart every four seconds with motorcycle departures in rotation")
+for i,design in observedDesigns do assert(design==Cars.names[(i-1)%4+1],"vehicle design rotation skipped or repeated") end
+check(#observedDesigns>=29,"all four body designs alternate across multiple pool reuse cycles")
 local function trafficPivots() local n=0; for _,vehicle in cars do n+=vehicle.pivots or 0 end; for _,vehicle in bikes do n+=vehicle.pivots or 0 end; return n end
 local trafficBefore=trafficPivots()
 local function pivots() local n=0; for _,weed in weeds do n+=weed.pivots or 0 end; return n end
