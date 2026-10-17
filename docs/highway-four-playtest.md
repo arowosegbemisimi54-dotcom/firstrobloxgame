@@ -18,7 +18,7 @@ or persistent mission progress are granted by the local controller.
    reveal, four masked crew, 1.5-second boarding, police, escape, banknote and
    title drop. Reduced Motion removes camera shake and speed-based FOV changes.
 5. Drive west along Highway Four. WASD, left stick or RT accelerates; S reverses;
-   Space/LT brakes. Touch controls are provided. Gain 150 studs on the patrol
+   Space/LT brakes. Right mouse drag, touch drag or the right stick rotates the camera; the mouse wheel zooms. V/right-stick click toggles the detailed cabin view with live patrol mirrors. Touch controls are provided. Gain 150 studs on the patrol
    for four seconds, then turn into OLD MOTOR DEPOT at the end of the route.
    Stop in its driveway to finish. Being stopped near patrol for four seconds
    gives an interception screen with a retry action.
@@ -37,9 +37,33 @@ with captions always available. Platform TTS permissions and timing need Studio
 validation; these are not recorded actor performances.
 
 Automated checks cover chapter timing, payment gating, doorway/road boundaries,
-mission completion/interception, R6 runtime paths and cleanup. Rojo builds and
+mission completion/interception, R15 runtime paths and cleanup. Rojo builds and
 Luau compilation are also checked. The headless service doubles cannot validate
 rendered camera composition, accessory alignment, touch layout or sound mixing.
 Playtest those in Studio on desktop and a mobile viewport before publishing.
-The authored primitive models and kinematic driving are a playable first pass,
-not a finished vehicle physics simulation or final cinematic art pass.
+The R15 gait advances with distance and flexes knees, ankles, elbows and waist.
+Crew members have separate boarding paths, bags and seats. Officers use a running
+pose followed by a two-handed aim. The vehicle has a continuous roof, cabin,
+steering wheel, speedometer and animated wheels. Mirrors render a limited set of
+road/patrol copies at 12 Hz; they are rear-view displays, not full-world reflections.
+The route includes dunes, sandstone shoulders, sagging telegraph wires, cacti,
+and a timber stash house with a porch, water tank and rotating wind pump.
+These are authored primitive models and kinematic driving, not final imported
+vehicle meshes or a full tire/suspension physics simulation.
+
+## Audio revision
+
+Dispatcher/crew/server use different platform TTS voices and delivery rates;
+dispatch adds equalization/compression. Quiet diner chatter and low static remain
+under the news and hush when the emergency signal begins. Original procedural
+WAVs and their generator are in assets/audio; upload those to Roblox and configure
+DinerAudio.assets to replace the platform fallbacks. TTS is still synthetic,
+not an original actor performance. EscapeAudio.recordings supports later licensed
+or original recordings. No audio from the reference videos is included.
+
+## Reference access
+
+Both TikTok URLs and the YouTube Short supplied on 2026-10-17 were blocked by the
+execution environment's HTTP proxy (403). Their contents were not viewed. The
+changes above use the user's written notes and supplied screenshots; video-specific
+handling adjustments await accessible clips.

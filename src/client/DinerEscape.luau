@@ -7,6 +7,7 @@ local Rules=require(game:GetService("ReplicatedStorage"):WaitForChild("GameShare
 local Props=require(script.Parent.EscapeProps)
 local Audio=require(script.Parent.EscapeAudio)
 local Motion=require(script.Parent.CharacterMotion)
+local Mirrors=require(script.Parent.VanMirrors)
 local Escape={}
 function Escape.prepare(ctx)
  local props=Props.build(ctx)
@@ -21,6 +22,7 @@ function Escape.start(ctx)
  local origin,ext,hero=ctx.origin,ctx.exterior,ctx.actors[1]
  local prepared=ctx.prepared or Escape.prepare(ctx)
  local props,audio=prepared.props,prepared.audio
+ local mirrors=Mirrors.create(ext.vehicle,props.police,ext.model)
  local state=Rules.new()
  local ui,root=ctx.ui,ctx.root
  local hud=ui.make("Frame",{Name="Highway Four chapter HUD",Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ZIndex=30},root)
@@ -62,16 +64,42 @@ function Escape.start(ctx)
  local driverOffset=vanCF:ToObjectSpace(ext.driverDoor:GetPivot())
  local passengerOffset=vanCF:ToObjectSpace(ext.passengerDoor:GetPivot())
  local cargoOffset=vanCF:ToObjectSpace(ext.cargoDoor:GetPivot())
+ local wheelRoll=0
+ local lastVanPosition
+ local wheelOffsets={}
+ for i,w in ext.vehicle.wheels do wheelOffsets[i]=vanCF:ToObjectSpace(w.model:GetPivot()) end
+ local steeringOffset=vanCF:ToObjectSpace(ext.vehicle.wheel:GetPivot())
+ local bagTargets={}
+ for i,bag in props.cargoBags do bagTargets[i]=vanCF:ToObjectSpace(bag.CFrame) end
  local car={x=290,z=140,yaw=-math.pi/2,speed=32}
  local mission={clearTime=0,bustTime=0,lost=false}
  local resultPanel
- local function positionVehicle(vehicle,pos,angle) vehicle:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0)) end
+ local function positionVehicle(vehicle,pos,angle)
+  vehicle:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0))
+  if vehicle==ext.van then
+   if lastVanPosition then wheelRoll+=math.min(20,(pos-lastVanPosition).Magnitude)/1.25 end
+   lastVanPosition=pos
+   for i,w in ext.vehicle.wheels do w.model:PivotTo(vehicle:GetPivot()*wheelOffsets[i]*CFrame.Angles(wheelRoll,0,0)) end
+  end
+ end
  local function pose(person,pos,angle,walk,seated)
   Motion.pose(person,origin,pos,angle,frameDt,seated,elapsed)
  end
- local function vanish(person)
-  -- Keep the seated crew inside the opaque cargo compartment, not outside the scene.
-  person.rig:PivotTo(ext.van:GetPivot()*CFrame.new(0,3.2,1.5))
+ local function seatedCrew(person)
+  local index=person.index
+  local seat=index==1 and CFrame.new(1.4,3.1,-3.45) or CFrame.new(index%2==0 and -1.8 or 1.8,2.9,-.5+(index-2)*1.7)*CFrame.Angles(0,index%2==0 and -math.pi/2 or math.pi/2,0)
+  person.rig:PivotTo(ext.van:GetPivot()*seat)
+  for _,side in {"Left","Right"} do
+   Motion.joint(person,side.."Hip",CFrame.Angles(1.35,0,0)); Motion.joint(person,side.."Knee",CFrame.Angles(-1.35,0,0))
+   Motion.joint(person,side.."Shoulder",CFrame.Angles(.15,0,0)); Motion.joint(person,side.."Elbow",CFrame.Angles(.3,0,0))
+  end
+ end
+ local function loadBag(person,progress)
+  if not person.bagStart then person.bagStart=person.bag.CFrame end
+  if person.bag then person.bag.Transparency=1; for _,p in person.baggage do p.Transparency=1 end end
+  props.cargoBags[person.index].Transparency=0
+  local u=progress or 1
+  props.cargoBags[person.index].CFrame=person.bagStart:Lerp(ext.van:GetPivot()*bagTargets[person.index],u)*CFrame.new(0,math.sin(u*math.pi)*.6,0)
  end
  local function seatHero()
   local seat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.8)
@@ -139,7 +167,7 @@ function Escape.start(ctx)
   for _,name in bound do Actions:UnbindAction(name) end
   Input.MouseBehavior=originalMouse; Input.MouseIconEnabled=originalIcon
   for _,p in hero.rig:GetDescendants() do if p:IsA("BasePart") then p.LocalTransparencyModifier=0 end end
-  prepared.destroy(); hud:Destroy()
+  mirrors.destroy(); prepared.destroy(); hud:Destroy()
  end
  local function startDrive()
   car={x=290,z=140,yaw=-math.pi/2,speed=32}; mission={clearTime=0,bustTime=0,lost=false}
@@ -163,7 +191,7 @@ function Escape.start(ctx)
   objective.Visible=false; hint.Visible=false; subtitle.Visible=false
   talk(name)
   if name=="truck" then audio.cue("engine"); audio.cue("skid"); shake=.012
-  elseif name=="unload" then audio.cue("door")
+  elseif name=="unload" then audio.cue("door"); doors(0,0,1.6)
   elseif name=="approach" then doors(-1.2,0,1.6)
   elseif name=="board" then audio.cue("engine")
   elseif name=="warning" then audio.cue("door"); doors(0,0,0)
@@ -184,19 +212,45 @@ function Escape.start(ctx)
   elseif name=="unload" then
    view(V(10,6,-37):Lerp(V(20,5,-42),ease),V(2+u*28,3,-57),57,dt,false)
    heroPos=V(55,3,10):Lerp(V(55,3,-32),u); pose(hero,heroPos,0,1,false)
-   for i,person in props.crew do local v=math.clamp((t-(i-1)*.35)/4.5,0,1); local pos=V(-5+(i%2)*3,3,-58-i):Lerp(V(46+i*1.5,3,-59+i*.7),v); pose(person,pos,-math.pi/2,v>0 and v<1 and 1 or 0,false) end
-  elseif name=="approach" then
-   heroPos=V(55,3,-32):Lerp(V(63,3,-58),ease); pose(hero,heroPos,0,1,false)
-   view(V(70,6,-40),heroPos+V(0,1,0),54,dt,false)
-   for i,person in props.crew do pose(person,V(48+i*1.5,3,-59+i*.7),-math.pi/2,0,false) end
-  elseif name=="board" then
-   seatHero(); doors(-1.2*(1-u),-1.1,1.6*(1-u))
-   view(V(49,6,-65),V(60,3,-53),54,dt,false)
    for i,person in props.crew do
-    if u<(i*.18+.2) then pose(person,V(48+i*1.5,3,-59+i*.7):Lerp(V(55,3,-53),u),-math.pi/2,1,false) else vanish(person) end
+    local v=math.clamp((t-(i-1)*.35)/4.9,0,1)
+    local start=V(-7+(i%2)*4,3,-58-(i-1)*2)
+    local goal=V(50-(i-1)*1.4,3,-57+(i-1)*2.1)
+    local pos=start:Lerp(goal,v)
+    pose(person,pos,-math.pi/2,v>0 and v<1 and 1 or 0,false)
+    if v>.9 then Motion.joint(person,"Neck",CFrame.Angles(0,.7*math.sin(elapsed+i),0)) end
+   end
+  elseif name=="approach" then
+   heroPos=V(55,3,-32):Lerp(V(63.45,3,-56.8),ease); pose(hero,heroPos,0,1,false)
+   view(V(70,6,-40),heroPos+V(0,1,0),54,dt,false)
+   for i,person in props.crew do
+    local from=V(50-(i-1)*1.4,3,-57+(i-1)*2.1)
+    local to=i==1 and V(63.45,3,-48.8) or V(52.9,3,-53+(i-3)*.7)
+    local blend=math.clamp(u*1.1,0,1)
+    local at=i==1 and (blend<.4 and from:Lerp(V(52,3,-48.8),blend/.4) or V(52,3,-48.8):Lerp(to,(blend-.4)/.6)) or from:Lerp(to,blend)
+    pose(person,at,i==1 and -math.pi/2 or math.pi/2,blend<1 and 1 or 0,false)
+    if u>.65 then Motion.joint(person,"LeftShoulder",CFrame.Angles(1.05,0,-.2)); Motion.joint(person,"LeftElbow",CFrame.Angles(.7,0,0)) end
+   end
+  elseif name=="board" then
+   local heroEntry=ext.van:GetPivot()*CFrame.new(-3.8,3.1,-3.45)
+   local heroSeat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.45)
+   hero.rig:PivotTo(heroEntry:Lerp(heroSeat,math.clamp(u*2,0,1)))
+   for _,side in {"Left","Right"} do Motion.joint(hero,side.."Hip",CFrame.Angles(u*1.35,0,0)); Motion.joint(hero,side.."Knee",CFrame.Angles(-u*1.35,0,0)) end
+   doors(-1.2*(1-u),-1.1*(1-u),1.6*(1-u))
+   view(V(48,6.5,-46),V(57,3.8,-53),57,dt,false)
+   for i,person in props.crew do
+    local progress=math.clamp((u-(i-1)*.12)/.55,0,1)
+    loadBag(person,math.clamp(u*2.5,0,1))
+    if progress<1 then
+     local outside=i==1 and CFrame.new(3.8,3.1,-3.45) or CFrame.new((i-3)*.7,2.9,7.1)
+     local inside=i==1 and CFrame.new(1.4,3.1,-3.45) or CFrame.new(i%2==0 and -1.8 or 1.8,2.9,-.5+(i-2)*1.7)
+     person.rig:PivotTo(ext.van:GetPivot()*outside:Lerp(inside,progress))
+     Motion.joint(person,"Waist",CFrame.Angles(-.32,0,0))
+     Motion.joint(person,"LeftKnee",CFrame.Angles(-.8*math.sin(progress*math.pi),0,0))
+    else seatedCrew(person) end
    end
   elseif name=="warning" then
-   seatHero(); for _,person in props.crew do vanish(person) end
+   seatHero(); for _,person in props.crew do seatedCrew(person) end
    view(V(69,5.6,-61),V(62,4.5,-53),48,dt,false)
   elseif name=="police" then
    view(V(0,105,26),V(0,0,-5),65,dt,false)
@@ -213,10 +267,10 @@ function Escape.start(ctx)
    if u<.3 then pos=V(60,.7,-53):Lerp(V(68,.7,-35),u/.3); angle=-math.pi+math.pi/2*(1-u/.3)
    elseif u<.75 then pos=V(68,.7,-35):Lerp(V(68,.7,140),(u-.3)/.45); angle=math.pi
    else pos=V(68,.7,140):Lerp(V(180,.7,140),(u-.75)/.25); angle=-math.pi/2 end
-   positionVehicle(ext.van,pos,angle); seatHero(); for _,person in props.crew do vanish(person) end
+   positionVehicle(ext.van,pos,angle); seatHero(); for _,person in props.crew do seatedCrew(person) end
    view(V(84,3,120),pos+V(0,2,0),65,dt,false)
   elseif name=="bill" then
-   positionVehicle(ext.van,V(180+u*110,.7,140),-math.pi/2); seatHero(); for _,person in props.crew do vanish(person) end
+   positionVehicle(ext.van,V(180+u*110,.7,140),-math.pi/2); seatHero(); for _,person in props.crew do seatedCrew(person) end
    local billPos=V(173,2.5,140):Lerp(V(164,5.2,135),ease)+V(0,math.sin(u*math.pi)*2,0)
    local flutter=CFrame.new(origin+billPos)*CFrame.Angles(u*math.pi*3,0,math.sin(t*4)*.6)
    local lens=CFrame.lookAt(origin+billPos,origin+V(164,5.2,134.8))*CFrame.Angles(math.pi/2,0,0)
@@ -232,6 +286,7 @@ function Escape.start(ctx)
   if ended then return end
   local dt=math.min(rawDt,.05); frameDt=dt; elapsed+=dt; shake=math.max(0,shake-dt*.012)
   Rules.advance(state,dt)
+  ext.landscape.update(elapsed,ctx.reducedMotion())
   for i=2,#ctx.actors do local actor=ctx.actors[i]; if actor.face then actor.face(elapsed,false,true) end; ctx.setJoint(actor,"Neck",CFrame.Angles(0,math.sin(elapsed*.5+i)*.15,0)) end
   for _,police in props.police do police.light.Brightness=math.sin(elapsed*12)>0 and 3 or .2 end
   local phase=state.phase
@@ -285,7 +340,7 @@ function Escape.start(ctx)
    local throttle=math.clamp((held.forward and 1 or 0)-(held.reverse and 1 or 0)+moveStick.Y,-1,1)
    local steer=math.clamp((held.right and 1 or 0)-(held.left and 1 or 0)+moveStick.X,-1,1)
    if Rules.drive(car,throttle,steer,held.brake,dt) then shake=.015 end
-   positionVehicle(ext.van,V(car.x,.7,car.z),car.yaw); seatHero(); for _,person in props.crew do vanish(person) end
+   positionVehicle(ext.van,V(car.x,.7,car.z),car.yaw); seatHero(); for _,person in props.crew do seatedCrew(person) end
    local nearest=math.huge
    for _,police in props.police do
     if not mission.lost then
@@ -302,6 +357,13 @@ function Escape.start(ctx)
    audio.engine(car.speed)
    driveOrbit-=lookStick.X*dt*2; drivePitch=math.clamp(drivePitch-lookStick.Y*dt,-.22,1.1)
    Input.MouseBehavior=looking and Enum.MouseBehavior.LockCurrentPosition or originalMouse
+   for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,-steer*.35,0)*CFrame.Angles(wheelRoll,0,0)) end end
+   ext.vehicle.needle.Rotation=-110+math.min(1,math.abs(car.speed)/78)*220
+   ext.vehicle.wheel:PivotTo(ext.van:GetPivot()*steeringOffset*CFrame.Angles(0,0,-steer*.7))
+   for _,p in hero.rig:GetDescendants() do
+    if p:IsA("BasePart") then p.LocalTransparencyModifier=firstPerson and (p.Name=="Head" or p:IsDescendantOf(hero.rig.Head) or p.Name:find("hat") or p.Name:find("Hat") or p.Name:find("brim") or p.Name:find("crown")) and 1 or 0 end
+   end
+   mirrors.update(dt,firstPerson)
    local target=V(car.x,3.8,car.z); local angle=car.yaw+driveOrbit
    if firstPerson then
     local eye=(ext.van:GetPivot()*CFrame.new(-1.35,4.65,-4.1)).Position-origin

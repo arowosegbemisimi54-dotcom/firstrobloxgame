@@ -1,5 +1,7 @@
 -- Original roadside block shared by the window views and the playable exit.
 local Cars=require(script.Parent.VintageCars)
+local Van=require(script.Parent.GetawayVan)
+local Landscape=require(script.Parent.EscapeLandscape)
 local Exterior={}
 function Exterior.build(parent,origin)
  local V=Vector3.new
@@ -91,40 +93,8 @@ function Exterior.build(parent,origin)
  part("Diner service dumpster",V(7,4.5,5),V(47,2.25,-40),C(61,77,59),Enum.Material.Metal)
  local lid=part("Dumpster lid",V(7.2,.25,5.2),V(47,4.6,-40),C(44,52,42),Enum.Material.Metal); lid.CFrame*=CFrame.Angles(.06,0,0)
  for _,z in {-46,-34} do part("Galvanized refuse can",V(2,3,2),V(47,1.5,z),metal,Enum.Material.Metal,Enum.PartType.Cylinder).CFrame*=CFrame.Angles(0,0,math.pi/2) end
- -- Original cab-over panel van inspired by period delivery vans.
- local van=Instance.new("Model"); van.Name="Matte black getaway panel van"; van.Parent=model
- local black=C(32,35,32)
- local function vp(name,size,pos,color,shape)
-  return part(name,size,pos,color,nil,shape,van)
- end
- vp("Panel van chassis",V(6,.55,12.5),V(0,.65,0),C(24,25,23))
- for _,x in {-2.88,2.88} do vp("Panel van cargo side",V(.16,5.4,8.2),V(x,3.75,1.7),black) end
- vp("Cargo wooden floor",V(5.6,.15,8),V(0,1.2,1.7),C(104,81,51))
- vp("Cab cargo partition",V(5.6,4.8,.13),V(0,3.7,-2.3),black)
- vp("Rounded panel van roof",V(6,1,12),V(0,6.4,0),black,Enum.PartType.Ball)
- vp("Cab over front",V(5.9,2.3,3.7),V(0,2.2,-4.25),black)
- for _,x in {-1.4,1.4} do local pane=vp("Split van windshield",V(2.45,2.05,.1),V(x,4.9,-6.14),C(102,122,121)); pane.Material=Enum.Material.Glass; pane.Transparency=.4 end
- for _,x in {-2.85,2.85} do vp("Cab windshield pillar",V(.18,2.8,.25),V(x,4.8,-6),black) end
- vp("Cab bench seat",V(4.7,.7,1.5),V(0,2.5,-3.7),C(80,66,47))
- vp("Dashboard",V(5.3,.5,.8),V(0,3.6,-5.4),C(58,57,48))
- vp("Windshield center bar",V(.14,2.1,.14),V(0,4.9,-6.2),metal)
- for x=-1.05,1.05,.15 do vp("Tall van grille slat",V(.065,2.4,.12),V(x,2.35,-6.19),metal) end
- for _,side in {-1,1} do
-  vp("Van round headlight",V(.8,.8,.18),V(side*2.1,2.55,-6.2),C(241,219,165),Enum.PartType.Ball)
-  vp("Van wing mirror",V(.2,.7,.5),V(side*3.35,4.7,-4.3),metal)
-  for _,z in {-3.9,3.9} do vp("Van tire",V(.6,2.5,2.5),V(side*2.8,.55,z),C(24,25,24),Enum.PartType.Cylinder); vp("Van wheel hub",V(.63,1.4,1.4),V(side*2.8,.55,z),metal,Enum.PartType.Cylinder) end
- end
- vp("Van front bumper",V(6.3,.3,.3),V(0,1,-6.4),metal)
- -- Separate animated doors with pivots at their physical hinges.
- local driverDoor=Instance.new("Model"); driverDoor.Name="Van driver door"; driverDoor.Parent=van
- local panel=vp("Driver door panel",V(.1,2.4,2.5),V(-3.01,2.4,-3.25),black); panel.Parent=driverDoor
- local glass=vp("Driver door glass",V(.12,1.5,2.1),V(-3.03,4.7,-3.25),C(102,122,121)); glass.Parent=driverDoor; glass.Material=Enum.Material.Glass; glass.Transparency=.4
- driverDoor.WorldPivot=CFrame.new(origin+V(-3,1.3,-4.5))
- local passengerDoor=driverDoor:Clone(); passengerDoor.Name="Van passenger door"; passengerDoor.Parent=van; passengerDoor:PivotTo(CFrame.new(origin+V(3,1.3,-4.5)));
- local cargoDoor=Instance.new("Model"); cargoDoor.Name="Van rear cargo door"; cargoDoor.Parent=van
- local rearPanel=vp("Rear hinged panel",V(5.9,4.9,.12),V(0,3.8,5.86),black); rearPanel.Parent=cargoDoor
- cargoDoor.WorldPivot=CFrame.new(origin+V(2.95,1.35,5.86))
- van.WorldPivot=CFrame.new(origin); van:PivotTo(CFrame.new(origin+V(60,.7,-53))*CFrame.Angles(0,-math.pi/2,0))
+ local vehicle=Van.build(part,origin,model)
+ local van,driverDoor,passengerDoor,cargoDoor=vehicle.model,vehicle.driver,vehicle.passenger,vehicle.cargo
  local door=Instance.new("Model"); door.Name="Diner glass entrance"; door.Parent=model
  local glassDoor=part("Diner glass door",V(6,8,.12),V(0,4,36),C(183,211,207),Enum.Material.Glass,nil,door); glassDoor.Transparency=.7
  for _,x in {-3,3} do part("Door frame upright",V(.14,8,.2),V(x,4,36),metal,Enum.Material.Metal,nil,door) end
@@ -132,9 +102,9 @@ function Exterior.build(parent,origin)
  part("Door pull",V(.15,1.1,.25),V(2,3.8,35.8),metal,Enum.Material.Metal,nil,door)
  door.WorldPivot=CFrame.new(origin+V(-3,0,36))
  -- Road continues to a reachable destination for the first driving objective.
- building(920,185,36,12,26,"OLD MOTOR DEPOT",C(130,116,89))
+ local landscape=Landscape.build(part,origin,model)
  part("Depot driveway",V(50,.1,45),V(920,0,166),asphalt,Enum.Material.Asphalt)
- return {model=model,van=van,driverDoor=driverDoor,passengerDoor=passengerDoor,cargoDoor=cargoDoor,door=door,part=part,parked=parked,origin=origin,
+ return {landscape=landscape,vehicle=vehicle,model=model,van=van,driverDoor=driverDoor,passengerDoor=passengerDoor,cargoDoor=cargoDoor,door=door,part=part,parked=parked,origin=origin,
   vanStart=V(60,.7,-53),safehouse=V(920,0,163),exit=V(0,0,44)}
 end
 return Exterior

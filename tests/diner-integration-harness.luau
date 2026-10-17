@@ -22,6 +22,7 @@ local transform={}
 transform.__index=transform
 function transform.__mul(a,b) return setmetatable({Position=a.Position,left=a,right=b},transform) end
 function transform:ToObjectSpace(other) return other end
+transform.LookVector=Vector.new(0,0,-1)
 function transform:VectorToWorldSpace(v) return v end
 local function cf(position) return setmetatable({Position=type(position)=="table" and position or Vector.new(0,0,0)},transform) end
 function transform:Lerp(other) return other end
@@ -86,6 +87,7 @@ function methods:GetDescendants()
  for _,child in self:GetChildren() do table.insert(list,child); for _,nested in child:GetDescendants() do table.insert(list,nested) end end
  return list
 end
+function methods:IsDescendantOf(other) local p=self.Parent; while p do if p==other then return true end; p=p.Parent end; return false end
 function methods:FindFirstChild(name)
  for _,child in self:GetChildren() do if child.Name==name then return child end end
 end
@@ -146,7 +148,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={GetawayVan="van",VanMirrors="mirrors",EscapeLandscape="escapeLandscape",CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -174,6 +176,15 @@ modules.broadcast=(function()
 end)()
 modules.cars=(function()
 -- INSERT_CARS
+end)()
+modules.van=(function()
+-- INSERT_VAN
+end)()
+modules.escapeLandscape=(function()
+-- INSERT_ESCAPE_LANDSCAPE
+end)()
+modules.mirrors=(function()
+-- INSERT_MIRRORS
 end)()
 modules.exterior=(function()
 -- INSERT_EXTERIOR
@@ -228,9 +239,13 @@ for _,obj in objects do
 end
 local exteriorParts=0
 local escapeParts=0
+local landscapeParts=0
+for _,obj in objects do if obj.Name=="Highway Four landscape and timber stash house" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then landscapeParts+=1 end end end end
 for _,obj in objects do if obj.Name=="Highway Four escape cast and props" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then escapeParts+=1 end end end end
 for _,obj in objects do if obj.Name=="Sunset Diner roadside block" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then exteriorParts+=1 end end end end
-check(parts-exteriorParts-escapeParts<2400 and exteriorParts<2100 and escapeParts<800,"interior and roadside block stay within separate geometry budgets")
+check(parts-exteriorParts-escapeParts<2400 and exteriorParts-landscapeParts<2400 and landscapeParts<1700 and escapeParts<800,"interior and roadside block stay within separate geometry budgets")
+check(counts["Continuous steel roof"]==13 and counts["Stitched leather seat cushion"]==2 and counts["Turning steering wheel"]==1,"van has a closed roof, cabin seats and steering assembly")
+check(counts["Stash house sign"]==1 and counts["Stave water tank"]==1 and counts["Turning wind pump"]==1,"stash house includes barn signage, water tower and wind pump")
 check(counts["Matte black getaway panel van"]==1 and counts["Diner glass entrance"]==1 and counts["Weathered parking court"]==1,"exterior includes getaway van, opening entrance and parking court")
 check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]==4,"four booth tables each have two facing seats")
 check(counts["Walnut diner radio"]==1 and not counts["CRT glass screen"],"broadcast uses one countertop radio and no television")
@@ -276,6 +291,20 @@ for _,obj in objects do
  if obj.Name=="News stinger" and (obj.plays or 0)>0 then stingers+=1 end
 end
 check(pausedPour and voicesPlaying==1 and stingers==2,"news entrance pauses pouring and starts one shared narration source with the radio stinger")
+render.callback(2)
+local quietChatter,staticPlaying=false,false
+for _,obj in objects do
+ if obj.ClassName=="AudioTextToSpeech" and obj.IsPlaying and obj.Volume and obj.Volume<.03 then quietChatter=true end
+ if obj.Name=="Light radio static" and obj.IsPlaying then staticPlaying=true end
+end
+check(quietChatter and staticPlaying,"light static and ducked background chatter continue under the radio report")
+local officerVoice,leaderVoice,policeFilter
+for _,obj in objects do
+ if obj.ClassName=="AudioTextToSpeech" and obj.Name=="police" then officerVoice=obj.VoiceId end
+ if obj.ClassName=="AudioTextToSpeech" and obj.Name=="unload" then leaderVoice=obj.VoiceId end
+ if obj.ClassName=="AudioEqualizer" then policeFilter=true end
+end
+check(officerVoice~=leaderVoice and policeFilter,"dispatcher has a distinct voice and a radio channel filter")
 check(not callbacks["Next shot →"] and not callbacks["Skip opening"],"story opening has no skip controls")
 stop(); stop()
 check(finishes==1 and render.callback==nil,"external stop cleans up once and disconnects camera animation")
@@ -332,11 +361,24 @@ frames(870)
 local driving=false
 for _,obj in objects do if obj.Name=="Interaction hint" and obj.Text and obj.Text:find("SAFEHOUSE") then driving=true end end
 check(driving,"pay, walk through exit and complete all cinematic beats into driving")
+local beforeLook=workspace.CurrentCamera.CFrame
+inputService.InputBegan.callback({UserInputType=Enum.UserInputType.MouseButton2},false)
+inputService.InputChanged.callback({UserInputType=Enum.UserInputType.MouseMovement,Delta={X=100,Y=20},Position={X=900,Y=300,Z=0}},false)
+frames(1)
+check(workspace.CurrentCamera.CFrame~=beforeLook,"driving camera responds to mouse orbit")
+press("View",true); frames(3)
+local mirrorsVisible=0
+for _,obj in objects do if obj.ClassName=="ViewportFrame" and obj.Visible and obj.Parent and obj.Parent.Name=="Live rear-view mirror" then mirrorsVisible+=1 end end
+check(mirrorsVisible==2,"cabin view activates both rearward patrol displays")
+press("View",true)
 press("Forward",true); frames(240); press("Forward",false)
 local lost=false
 for _,obj in objects do if obj.Name=="Mission objective" and obj.Text and obj.Text:find("Patrol lost") then lost=true end end
 check(lost,"driving away at speed loses the pursuing patrol")
 stopNatural(); stopNatural()
+local mirrorsClean=true
+for _,obj in objects do if obj.Name=="Live rear-view mirror" and not obj.destroyed then mirrorsClean=false end end
+check(mirrorsClean,"chapter teardown destroys both rear-view scenes")
 check(finishes==2 and render.callback==nil and next(actions)==nil,"chapter teardown disconnects camera and every control binding once")
 check(lighting.ClockTime==17.7 and grade.Enabled==true and inputService.MouseBehavior=="Default","chapter teardown restores menu lighting and mouse behavior")
 print(string.format("%d diner integration checks passed",checks))

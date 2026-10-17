@@ -62,23 +62,29 @@ function Props.build(ctx)
    local weld=Instance.new("WeldConstraint"); weld.Part0=body; weld.Part1=obj; weld.Parent=obj; return obj
   end
   local head=character:FindFirstChild("Head")
+  local bag
+  local baggage={}
   if masked then
    wearable(head,"Crew folded bandanna",V(1.12,.5,.14),CFrame.new(0,-.25,-.56),C(37+index*9,38+index*5,35))
    local arm=character:FindFirstChild("LeftHand")
-   local bag=wearable(arm,"Cash filled canvas duffel",V(1.1,.9,1.9),CFrame.new(0,-.75,0),C(76,70,48)); bag.Shape=Enum.PartType.Ball
-   wearable(arm,"Duffel leather handle",V(.6,.16,.15),CFrame.new(0,-.25,0),C(49,37,25))
-   wearable(arm,"Duffel zipper",V(.05,.04,1.5),CFrame.new(0,-.3,0),C(178,159,105))
+   bag=wearable(arm,"Cash filled canvas duffel",V(1.1,.9,1.9),CFrame.new(0,-.75,0),C(76,70,48)); bag.Shape=Enum.PartType.Ball
+   table.insert(baggage,wearable(arm,"Duffel leather handle",V(.6,.16,.15),CFrame.new(0,-.25,0),C(49,37,25)))
+   table.insert(baggage,wearable(arm,"Duffel zipper",V(.05,.04,1.5),CFrame.new(0,-.3,0),C(178,159,105)))
   else
    for _,obj in character:GetDescendants() do if obj:IsA("BasePart") and (obj.Name:find("jacket") or obj.Name:find("trouser") or obj.Name:find("Torso") or obj.Name:find("Arm") or obj.Name:find("Leg")) then obj.Color=C(37,49,64) end end
    wearable(character.UpperTorso,"Officer brass badge",V(.2,.25,.04),CFrame.new(-.5,.45,-.61),C(191,153,70))
    local arm=character:FindFirstChild("RightHand")
    wearable(arm,"Period service revolver",V(.16,.19,.65),CFrame.new(0,-.15,-.28),C(49,51,51))
   end
-  return {rig=character,face=face,joints=joints,style=masked and "crew" or "officer"}
+  return {rig=character,face=face,joints=joints,style=masked and "crew" or "officer",bag=bag,baggage=baggage,index=index}
  end
  local crew,officers={},{}
  for i=1,4 do crew[i]=rig(i,"Masked crew "..i,true); crew[i].rig:PivotTo(CFrame.new(origin+V(-115,-30,-55))) end
  for i=1,2 do officers[i]=rig(i+1,"Highway patrol officer "..i,false); officers[i].rig:PivotTo(CFrame.new(origin+V(-115,-30,-55))) end
+ local cargoBags={}
+ for i=1,4 do
+  local bag=attach(ext.van,"Stowed cash duffel "..i,V(1.1,.9,1.9),V((i%2)*1.3-.65,1.8,2.8+math.floor((i-1)/2)*1.8),C(76,70,48)); bag.Shape=Enum.PartType.Ball; bag.Transparency=1; cargoBags[i]=bag
+ end
  local police={}
  for i=1,2 do
   local car=ext.parked(1,V(-180-i*18,0,140),-math.pi/2); car.Name="Highway patrol cruiser "..i
@@ -89,6 +95,6 @@ function Props.build(ctx)
   local beam=Instance.new("SpotLight"); beam.Face=Enum.NormalId.Front; beam.Range=45; beam.Angle=55; beam.Brightness=2; beam.Parent=lamp
   police[i]={model=car,light=light,x=-180-i*18,z=140}
  end
- return {folder=folder,payment=payment,airborne=airborne,truck=truck,steam=steam,burnout=burnout,crew=crew,officers=officers,police=police}
+ return {cargoBags=cargoBags,folder=folder,payment=payment,airborne=airborne,truck=truck,steam=steam,burnout=burnout,crew=crew,officers=officers,police=police}
 end
 return Props
