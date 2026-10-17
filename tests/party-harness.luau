@@ -14,11 +14,12 @@ function Players:GetPlayers()
 	local result={}; for _,p in users do table.insert(result,p) end; return result
 end
 function Players:GetPlayerByUserId(id) return users[id] end
-local Remote={OnServerEvent=signal(),messages={},states={},invites={}}
+local Remote={OnServerEvent=signal(),messages={},states={},invites={},openings={}}
 function Remote:FireClient(p,kind,value)
 	if kind=="party" then self.states[p.UserId]=value
 	elseif kind=="message" then self.messages[p.UserId]=value
-	elseif kind=="invitation" then self.invites[p.UserId]=value end
+	elseif kind=="invitation" then self.invites[p.UserId]=value
+	elseif kind=="storyOpening" then self.openings[p.UserId]=(self.openings[p.UserId] or 0)+1 end
 end
 local Instance={new=function(kind) if kind=="RemoteEvent" then return Remote else return {} end end}
 local Config={OnlinePlaceId=0,StoryPlaceId=0,InviteLifetime=30}
@@ -68,7 +69,12 @@ check(Remote.states[2].leader==2 and #Remote.states[2].members==2,"leader leave 
 check(Remote.states[1].leader==1 and #Remote.states[1].members==1,"leaving player receives separate solo party")
 send(2,"start"); send(4,"online")
 check(Teleport.calls==0,"unconfigured destinations do not teleport")
-check(string.find(Remote.messages[2],"development")~=nil,"story launch explains unavailable mission")
+check(Remote.openings[2]==1 and Remote.openings[3]==1,"leader starts diner opening for the crew")
+check(Remote.openings[4]==nil,"unrelated players do not receive opening")
+send(3,"start")
+check(Remote.openings[2]==1,"nonleader cannot start local opening")
+send(2,"start")
+check(Remote.openings[2]==1,"duplicate rapid opening requests are suppressed")
 Config.StoryPlaceId=123
 send(3,"start")
 check(Teleport.calls==0,"nonleader cannot launch crew")

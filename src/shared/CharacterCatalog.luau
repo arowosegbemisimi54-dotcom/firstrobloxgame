@@ -3,7 +3,7 @@ Catalog.Personalities = {"Friendly", "Serious", "Mysterious", "Funny"}
 Catalog.Tabs = {"Costume", "Top", "Bottom", "Hat", "Shoes", "Critter"}
 Catalog.SelectionCooldown = 0.5
 Catalog.Items = {
-	Costume = {{id="none",name="No costume"},{id="desert_bird",name="Desert bird costume",locked=true}},
+	Costume = {{id="none",name="No costume"}},
 	Top = {{id="western_shirt",name="Weathered western shirt"}},
 	Bottom = {{id="ragged_jeans",name="Ragged denim"}},
 	Hat = {{id="none",name="No hat"},{id="cowboy",name="Cowboy hat"}},
@@ -21,10 +21,16 @@ function Catalog.validateIdentity(name,gender,personality)
 	if type(name)~="string" then return false,"Enter a character name." end
 	local clean=name:match("^%s*(.-)%s*$")
 	local length=utf8.len(clean)
-	if not length or length<2 or length>24 or clean:find("%c") then return false,"Use a name between 2 and 24 characters." end
+	if not length or clean:find("%c") then return false,"This name is unavailable." end
+	if length<2 then return false,"This name is too short." end
+	if length>24 then return false,"This name is too long." end
 	if gender~="Boy" and gender~="Girl" then return false,"Choose Boy or Girl." end
 	if not table.find(Catalog.Personalities,personality) then return false,"Choose a personality." end
 	return true,clean
+end
+function Catalog.nameAllowed(name,userId,developerId)
+	-- Ignore case and whitespace when protecting the exact developer name.
+	return name:lower():gsub("%s+", "")~="mhide" or (developerId>0 and userId==developerId)
 end
 function Catalog.canEquip(outfit,slot,id)
 	if type(slot)~="string" or type(id)~="string" then return false,"Invalid item." end

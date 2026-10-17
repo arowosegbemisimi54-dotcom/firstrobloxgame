@@ -5,11 +5,12 @@ local TweenService=game:GetService("TweenService")
 local shared=game:GetService("ReplicatedStorage"):WaitForChild("GameShared")
 local Catalog=require(shared.CharacterCatalog)
 local Outfit=require(shared.WesternOutfit)
+local Motion=require(script.Parent.PageMotion)
 local Wardrobe={}
 
 function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 	local page=ui.make("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Visible=false,ZIndex=5},parent)
-	ui.button(page,"← Back",UDim2.fromOffset(24,12),UDim2.fromOffset(170,48),function() page.Visible=false; onBack() end)
+	ui.navButton(page,"← Back",UDim2.fromOffset(24,12),UDim2.fromOffset(170,48),function() page.Visible=false; onBack() end)
 	local heading=ui.text(page,"YOUR IDENTITY",UDim2.fromOffset(24,74),UDim2.fromOffset(580,42),30)
 	local viewport=ui.make("ViewportFrame",{Position=UDim2.fromOffset(20,132),Size=UDim2.fromOffset(430,395),BackgroundTransparency=1,Ambient=Color3.fromRGB(172,158,139),LightColor=Color3.fromRGB(255,229,193),LightDirection=Vector3.new(-1,-1,-2),Active=true},page)
 	local world=ui.make("WorldModel",{},viewport)
@@ -66,7 +67,7 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		Outfit.apply(preview,profile)
 		idleJoints={}
 		for _,joint in preview:GetDescendants() do
-			if joint:IsA("Motor6D") and (joint.Name=="LeftShoulder" or joint.Name=="RightShoulder") then table.insert(idleJoints,joint) end
+			if joint:IsA("Motor6D") and (joint.Name=="LeftShoulder" or joint.Name=="RightShoulder" or joint.Name=="Left Shoulder" or joint.Name=="Right Shoulder") then table.insert(idleJoints,{joint=joint,base=joint.C0}) end
 		end
 		preview:PivotTo(CFrame.Angles(0,angle,0))
 	end
@@ -94,7 +95,11 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		ui.make("UIGridLayout",{CellSize=UDim2.fromOffset(136,154),CellPadding=UDim2.fromOffset(14,14),SortOrder=Enum.SortOrder.LayoutOrder},cards)
 		if not template then return end
 		status.Text=selectedTab=="Critter" and "Dogs unlock as you advance through Story Mode." or "Select an item to wear it."
-		for index,item in Catalog.Items[selectedTab] do
+		local visibleItems={}
+		for _,item in Catalog.Items[selectedTab] do
+			if selectedTab~="Costume" or not item.locked then table.insert(visibleItems,item) end
+		end
+		for index,item in visibleItems do
 			local slot=selectedTab
 			local card=ui.make("TextButton",{Text="",Size=UDim2.fromOffset(136,154),BackgroundColor3=Color3.fromRGB(38,34,27),BackgroundTransparency=.2,BorderSizePixel=0,LayoutOrder=index,Selectable=true},cards)
 			ui.make("UICorner",{CornerRadius=UDim.new(0,4)},card)
@@ -119,8 +124,8 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		end
 	end
 	for _,tab in Catalog.Tabs do
-		local b=ui.button(tabs,tab,UDim2.new(),UDim2.fromOffset(tab=="Costume" and 110 or 90,48),function()
-			selectedTab=tab; renderCards()
+		local b=ui.navButton(tabs,tab,UDim2.new(),UDim2.fromOffset(tab=="Costume" and 110 or 90,48),function()
+			selectedTab=tab; renderCards(); Motion.enter(cards,1,isReducedMotion())
 			for _,child in tabs:GetChildren() do if child:IsA("TextButton") then child.TextColor3=child.Text==tab and Color3.fromRGB(222,161,80) or Color3.fromRGB(232,211,175) end end
 		end)
 		b.TextSize=17
@@ -142,8 +147,8 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		time+=dt
 		local bob=isReducedMotion() and 0 or math.sin(time*1.7)*.035
 		preview:PivotTo(CFrame.new(0,bob,0)*CFrame.Angles(0,angle,0))
-		for _,joint in idleJoints do
-			joint.Transform=CFrame.Angles(0,0,isReducedMotion() and 0 or math.sin(time*1.7)*.025)
+		for _,data in idleJoints do
+			data.joint.C0=data.base*CFrame.Angles(0,0,isReducedMotion() and 0 or math.sin(time*1.7)*.025)
 		end
 	end)
 	local function resize()
@@ -160,12 +165,13 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		hint.Size=UDim2.fromOffset(narrow and 240 or 400,45)
 		left.Position=UDim2.fromOffset(25,narrow and 535 or 480)
 		right.Position=UDim2.fromOffset(narrow and 205 or 380,narrow and 535 or 480)
+		Motion.reset(cards)
 	end
 	connect(parent:GetPropertyChangedSignal("AbsoluteSize"),resize); resize()
 	return {
 		open=function(value)
-			profile=value; page.Visible=true
-			heading.Text=value.name.." · "..value.personality
+			profile=value; Motion.enter(page,1,isReducedMotion())
+			heading.Text=value.name
 			if template then refreshPreview(); renderCards(); return end
 			if loading then return end
 			loading=true; status.Text="Loading your character…"
@@ -177,7 +183,7 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 						local clone=character:Clone(); character.Archivable=archivable
 						return clone
 					end
-					return Players:CreateHumanoidModelFromDescriptionAsync(Instance.new("HumanoidDescription"),Enum.HumanoidRigType.R15)
+					return Players:CreateHumanoidModelFromDescriptionAsync(Instance.new("HumanoidDescription"),Enum.HumanoidRigType.R6)
 				end)
 				loading=false
 				if destroyed then if ok and rig then rig:Destroy() end; return end

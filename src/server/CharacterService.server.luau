@@ -2,6 +2,7 @@ local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local TextService=game:GetService("TextService")
 local RunService=game:GetService("RunService")
+local Config=require(ReplicatedStorage.GameShared.Config)
 local Catalog=require(ReplicatedStorage.GameShared.CharacterCatalog)
 local Outfit=require(ReplicatedStorage.GameShared.WesternOutfit)
 local remote=Instance.new("RemoteFunction")
@@ -39,6 +40,9 @@ remote.OnServerInvoke=function(player,action,data)
 		if type(data)~="table" then return {ok=false,message="Invalid character details."} end
 		local valid,name=Catalog.validateIdentity(data.name,data.gender,data.personality)
 		if not valid then return {ok=false,message=name} end
+		local developerId=Config.DeveloperUserId
+		if developerId==0 and game.CreatorType==Enum.CreatorType.User then developerId=game.CreatorId end
+		if not Catalog.nameAllowed(name,player.UserId,developerId) then return {ok=false,message="This name is unavailable."} end
 		busy[player]=true
 		local ok,filtered=pcall(function()
 			return TextService:FilterStringAsync(name,player.UserId):GetNonChatStringForBroadcastAsync()
@@ -51,7 +55,7 @@ remote.OnServerInvoke=function(player,action,data)
 			filtered="Studio Explorer"
 			notice="Studio is using a placeholder name because filtering is unavailable. Test your chosen name in the published game."
 		end
-		if filtered:find("#") then return {ok=false,message="Please choose another character name."} end
+		if filtered:find("#") or not Catalog.nameAllowed(filtered,player.UserId,developerId) then return {ok=false,message="This name is unavailable."} end
 		profiles[player]={name=filtered,gender=data.gender,personality=data.personality,outfit=Catalog.defaultOutfit()}
 	elseif action=="equip" then
 		local profile=profiles[player]

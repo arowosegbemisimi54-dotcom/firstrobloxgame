@@ -20,3 +20,9 @@ is ambiguous, clarify it rather than guessing at a redesign.
 Apply this rule throughout the Shirts and Skins project unless the user explicitly
 revises it. In completion reports, identify the specific requested differences
 implemented.
+
+## Character rig
+
+The user has chosen standard R6 for this project. Use R6 when creating NPCs or
+preview fallback rigs, and support its single-piece arms/legs and spaced joint
+names in clothing and animation. Do not switch back to R15 without instruction.

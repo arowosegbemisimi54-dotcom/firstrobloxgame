@@ -23,3 +23,25 @@ cinematic, party rules, credits, font, and mode selection remain the baseline.
 The screenshot lines are partially clipped on the right. No additional content
 beyond the readable requirements has been invented. Additional mission unlock
 rules and purchasable inventory have not yet been supplied.
+
+## Subsequent screenshot changes and R6 instruction
+
+- Remove permanent name/gender side notes; show validation feedback only when needed.
+- Add quick slide transitions between setup steps and menu pages, with a soft
+  movement sound. Keep the original mode-choice reveal clicks.
+- Replace the staggered menu arrangement with a prominent Play link and smaller
+  links beneath it. Keep text-only backgrounds and the current font.
+- Remove the desert bird costume entirely. Do not show locked costumes before
+  they are unlocked. Keep personality selection, but hide it in the wardrobe.
+- Reserve the case-insensitive name Mhide for the developer account. Default to
+  the experience owner's User ID for user-owned experiences; group-owned games
+  require Config.DeveloperUserId. All other duplicate names remain allowed.
+- Story Mode selection shows 0–100% preparation progress over a sunset with a
+  rolling tumbleweed widget, then the existing desert menu sequence.
+- Begin Story plays the supplied diner opening: player alone at a booth with a
+  meal, three customers total including the player, one waitress behind the
+  counter, one chef in the back. Eating and working motions should be visible.
+- The opening camera glides for 2.5 seconds, then eases toward the player and
+  meal. Support both next-shot and whole-opening skipping. No later plot supplied.
+- Standard R6 is now the project rig, explicitly requested during implementation.
+- The previously confirmed 0.5-second clothing cooldown remains unchanged.

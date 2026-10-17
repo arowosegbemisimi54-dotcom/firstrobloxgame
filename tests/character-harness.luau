@@ -15,9 +15,11 @@ local Instance={new=function() return remote end}
 local Catalog=(function()
 -- INSERT_CATALOG
 end)()
-local services={RunService={IsStudio=function() return inStudio end},Players=Players,TextService=TextService,ReplicatedStorage={GameShared={CharacterCatalog="catalog",WesternOutfit="outfit"}}}
-local game={GetService=function(_,key) return services[key] end}
-local function require(key) return key=="catalog" and Catalog or {apply=function() end} end
+local Config={DeveloperUserId=0}
+local Enum={CreatorType={User="User",Group="Group"}}
+local services={RunService={IsStudio=function() return inStudio end},Players=Players,TextService=TextService,ReplicatedStorage={GameShared={Config="config",CharacterCatalog="catalog",WesternOutfit="outfit"}}}
+local game={CreatorType="User",CreatorId=4,GetService=function(_,key) return services[key] end}
+local function require(key) if key=="config" then return Config end; return key=="catalog" and Catalog or {apply=function() end} end
 local function boot()
 -- INSERT_CHARACTER_SERVER
 end
@@ -40,6 +42,13 @@ local studio=send(3,"create",{name="unfiltered",gender="Boy",personality="Funny"
 check(studio.ok and studio.profile.name=="Studio Explorer" and studio.notice~=nil,"Studio filter outage uses safe placeholder with notice")
 inStudio=false
 filterFails=false
+check(not send(1,"create",{name="MHIDE",gender="Boy",personality="Funny"}).ok,"developer name denied to other accounts")
+check(not send(1,"create",{name="M h i d e",gender="Boy",personality="Funny"}).ok,"spaced developer-name bypass denied")
+local developer=send(4,"create",{name="Mhide",gender="Boy",personality="Serious"})
+check(developer.ok and developer.profile.name=="Mhide","experience owner can use developer name")
+check(not Catalog.nameAllowed("mhide",4,0),"unconfigured group owner fails closed")
+check(Catalog.nameAllowed("mHiDe",4,4),"configured developer ID matches case-insensitively")
+check(Catalog.find("Costume","desert_bird")==nil,"bird costume absent from catalog")
 local first=send(1,"create",{name="  Sam  ",gender="Boy",personality="Friendly"})
 check(first.ok and first.profile.name=="Sam","valid character creation trims and filters name")
 local second=send(2,"create",{name="Sam",gender="Girl",personality="Mysterious"})
@@ -47,7 +56,7 @@ check(second.ok and second.profile.name==first.profile.name,"duplicate character
 check(second.profile.gender=="Girl" and second.profile.personality=="Mysterious","gender and personality retained")
 local before=table.clone(first.profile.outfit)
 check(not send(1,"equip",{slot="Critter",id="dog"}).ok,"locked dog rejected by server")
-check(not send(1,"equip",{slot="Costume",id="desert_bird"}).ok,"locked costume rejected by server")
+check(not send(1,"equip",{slot="Costume",id="desert_bird"}).ok,"removed bird costume rejected by server")
 check(not send(1,"equip",{slot="Hat",id="admin_hat"}).ok,"forged item rejected")
 local changed=send(1,"equip",{slot="Hat",id="none"})
 check(changed.ok and changed.profile.outfit.Hat=="none","optional hat can be removed")
@@ -59,7 +68,7 @@ check(other.profile.outfit.Hat=="cowboy","player inventories are independent")
 check(not Catalog.validateIdentity("Sam\nSmith","Boy","Funny"),"control characters in names rejected")
 check(not Catalog.validateIdentity(string.rep("x",25),"Boy","Funny"),"overlong names rejected")
 check(not Catalog.validateIdentity("\255","Boy","Funny"),"invalid UTF-8 rejected")
-local costume=Catalog.defaultOutfit(); costume.Costume="desert_bird"
+local costume=Catalog.defaultOutfit(); costume.Costume="future_unlocked_costume"
 check(not Catalog.canEquip(costume,"Hat","cowboy"),"costume prevents individual item changes")
 check(Catalog.canEquip(costume,"Costume","none"),"costume can be removed to restore clothing")
 Players.PlayerRemoving.callback(users[1])

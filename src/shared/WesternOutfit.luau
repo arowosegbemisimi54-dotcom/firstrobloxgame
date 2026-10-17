@@ -77,19 +77,7 @@ function Outfit.apply(character,profile)
 		piece(folder,head,"Cowboy crown",Vector3.new(head.Size.X*.9,.65,head.Size.Z*1.05),CFrame.new(0,head.Size.Y*.57+.28,0),hat,Enum.PartType.Ball)
 		piece(folder,head,"Hat band",Vector3.new(head.Size.X*.92,.13,head.Size.Z*1.07),CFrame.new(0,head.Size.Y*.57+.1,0),leather)
 	end
-	-- Full costumes visually cover ordinary garments without deleting their saved choices.
-	if outfit.Costume=="desert_bird" then
-		folder:ClearAllChildren()
-		for _,name in {"LeftUpperArm","RightUpperArm","LeftLowerArm","RightLowerArm","LeftHand","RightHand","LeftUpperLeg","RightUpperLeg","LeftLowerLeg","RightLowerLeg","LeftFoot","RightFoot","Left Arm","Right Arm","Left Leg","Right Leg"} do
-			local body=character:FindFirstChild(name)
-			if body then piece(folder,body,"Costume covering",body.Size*1.12,CFrame.new(),Color3.fromRGB(213,165,61),Enum.PartType.Ball) end
-		end
-		piece(folder,torso,"Bird costume body",Vector3.new(3,3,2.5),CFrame.new(),Color3.fromRGB(213,165,61),Enum.PartType.Ball)
-		if head then
-			piece(folder,head,"Bird hood",Vector3.new(2,2,2),CFrame.new(),Color3.fromRGB(213,165,61),Enum.PartType.Ball)
-			piece(folder,head,"Bird beak",Vector3.new(.8,.5,1.3),CFrame.new(0,-.15,-1),Color3.fromRGB(168,92,39),Enum.PartType.Ball)
-		end
-	end
+
 end
 function Outfit.dog()
 	local model=Instance.new("Model")

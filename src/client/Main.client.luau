@@ -12,6 +12,9 @@ local Config = require(shared:WaitForChild("Config"))
 local DesertScene = require(script.Parent.DesertScene)
 local CharacterFlow = require(script.Parent.CharacterFlow)
 local Wardrobe = require(script.Parent.Wardrobe)
+local Motion = require(script.Parent.PageMotion)
+local StoryLoading = require(script.Parent.StoryLoading)
+local DinerOpening = require(script.Parent.DinerOpening)
 local characterRemote = shared:WaitForChild("CharacterRequest")
 local characterProfile
 local flowCleanup
@@ -40,18 +43,21 @@ local function text(parent, content, position, size, fontSize, color)
 	return make("TextLabel", {Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=color or warm,TextSize=fontSize,Font=Enum.Font.SpecialElite,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true},parent)
 end
 local sound = make("Sound",{SoundId=Config.ClickSound,Volume=.35},gui)
+local swipeSound=make("Sound",{SoundId=Config.TransitionSound,Volume=.12,PlaybackSpeed=.85},gui)
 local soundEnabled, lowEffects, reducedMotion = true, false, false
 local profilePulse
 local function click() if soundEnabled then sound:Play() end end
-local function button(parent, content, position, size, callback)
+local function swipe() if soundEnabled then swipeSound:Play() end end
+local function button(parent, content, position, size, callback, navigation)
 	local b = make("TextButton",{Text=content,Position=position,Size=size,BackgroundTransparency=1,TextColor3=warm,TextSize=20,Font=Enum.Font.SpecialElite,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false,Selectable=true},parent)
 	local function focus() tween(b,.15,{TextColor3=accent}) end
 	local function blur() tween(b,.15,{TextColor3=warm}) end
 	b.MouseEnter:Connect(focus); b.SelectionGained:Connect(focus)
 	b.MouseLeave:Connect(blur); b.SelectionLost:Connect(blur)
-	b.Activated:Connect(function() click(); callback(b) end)
+	b.Activated:Connect(function() if navigation then swipe() else click() end; callback(b) end)
 	return b
 end
+local function navButton(parent,content,position,size,callback) return button(parent,content,position,size,callback,true) end
 local toast = text(root,"",UDim2.fromScale(.5,.87),UDim2.fromScale(.82,.09),16,warm)
 toast.AnchorPoint, toast.TextXAlignment, toast.ZIndex = Vector2.new(.5,0), Enum.TextXAlignment.Center, 20
 local messageVersion = 0
@@ -76,9 +82,9 @@ local bars = {}
 local party = {leader=player.UserId,capacity=1,members={{id=player.UserId,name=player.DisplayName}}}
 local renderConnection = RunService.RenderStepped:Connect(function(dt)
 	local current = workspace.CurrentCamera
-	if not current then return end
+	if not current or state=="diner" then return end
 	current.CameraType = Enum.CameraType.Scriptable
-	if scene and state ~= "opening" and state ~= "creation" then
+	if scene and (state=="cinematic" or state=="menu") then
 		scene.update(dt, true, not reducedMotion)
 		if not reducedMotion then angle -= math.min(dt,.1) * (state == "cinematic" and .055 or .012) end
 		local focus = scene.focus
@@ -111,13 +117,15 @@ make("UICorner",{CornerRadius=UDim.new(0,8)},panel)
 local panelBody = frame(panel,UDim2.fromOffset(145,155),UDim2.fromOffset(502,360))
 local panelTitle = text(panel,"",UDim2.fromOffset(28,78),UDim2.fromOffset(550,45),30)
 local activePanel, refreshPanel = nil, nil
-local function closePanel() panel.Visible=false; activePanel=nil; refreshPanel=nil; home.Visible=true end
-button(panel,"← Back",UDim2.fromOffset(24,12),UDim2.fromOffset(170,48),closePanel)
+local function closePanel() panel.Visible=false; activePanel=nil; refreshPanel=nil; Motion.enter(home,-1,reducedMotion) end
+navButton(panel,"← Back",UDim2.fromOffset(24,12),UDim2.fromOffset(170,48),closePanel)
 local function openPanel(name)
+	local newlyOpened=not panel.Visible
 	panelBody:ClearAllChildren()
 	panel.Visible, panelTitle.Text, activePanel = true, name, name
 	home.Visible=false
 	if wardrobe then wardrobe.close() end
+	if newlyOpened then Motion.enter(panel,1,reducedMotion) end
 end
 local showPlay, showInvite
 local firstMenuButton
@@ -132,10 +140,10 @@ showPlay = function()
 	local names={}
 	for _,member in party.members do table.insert(names,member.name..(member.id==party.leader and " · LEADER" or "")) end
 	text(panelBody,table.concat(names,"\n"),UDim2.fromOffset(0,83),UDim2.fromOffset(490,95),17)
-	local start = button(panelBody,"BEGIN STORY  →",UDim2.fromOffset(0,183),UDim2.fromOffset(285,44),function() remote:FireServer("start") end)
+	local start = navButton(panelBody,"BEGIN STORY  →",UDim2.fromOffset(0,183),UDim2.fromOffset(285,44),function() remote:FireServer("start") end)
 	start.TextColor3=accent
 	button(panelBody,"Leave crew",UDim2.fromOffset(320,183),UDim2.fromOffset(175,44),function() remote:FireServer("leave") end).TextSize=15
-	text(panelBody,"Up to "..party.capacity.." players • First mission in development",UDim2.fromOffset(0,235),UDim2.fromOffset(495,25),13,muted)
+	text(panelBody,"Up to "..party.capacity.." players",UDim2.fromOffset(0,235),UDim2.fromOffset(495,25),13,muted)
 end
 showInvite = function()
 	openPanel("INVITE YOUR CREW")
@@ -185,17 +193,17 @@ end
 local function showOptions()
 	openPanel("OPTIONS"); refreshPanel=nil
 	text(panelBody,"Select with mouse, touch, or gamepad A. Use the directional pad to navigate.\n\nInvite players in this server, then choose Solo, Duo, or a squad of up to four under Play.",UDim2.new(),UDim2.fromOffset(490,175),17,muted)
-	button(panelBody,"←  Return to mode selection",UDim2.fromOffset(0,200),UDim2.fromOffset(490,44),returnToOpening).TextSize=17
+	navButton(panelBody,"←  Return to mode selection",UDim2.fromOffset(0,200),UDim2.fromOffset(490,44),returnToOpening).TextSize=17
 end
 local homeButtons={}
 for index,item in {{"Play",showPlay},{"Invite",showInvite},{"Shop",showShop},{"Settings",showSettings},{"Options",showOptions}} do
-	local offsets={{40,202},{82,263},{28,334},{106,397},{58,455}}
-	local b=button(home,item[1],UDim2.fromOffset(offsets[index][1],offsets[index][2]),UDim2.fromOffset(220,48),item[2])
-	b.TextSize=index==1 and 29 or 24
+	local offsets={{28,194},{34,292},{34,348},{34,404},{34,460}}
+	local b=navButton(home,item[1],UDim2.fromOffset(offsets[index][1],offsets[index][2]),UDim2.fromOffset(index==1 and 260 or 220,index==1 and 78 or 48),item[2])
+	b.TextSize=index==1 and 52 or 24
 	homeButtons[index]=b
 	if index==1 then firstMenuButton=b end
 end
-local backButton = button(home,"← Back",UDim2.fromOffset(28,510),UDim2.fromOffset(245,44),returnToOpening)
+local backButton = navButton(home,"← Back",UDim2.fromOffset(28,510),UDim2.fromOffset(245,44),returnToOpening)
 backButton.TextSize=18
 local profile = make("ImageButton",{Position=UDim2.fromOffset(302,202),Size=UDim2.fromOffset(64,64),BackgroundColor3=Color3.fromRGB(43,40,32),BackgroundTransparency=.2,Image="",AutoButtonColor=false},home)
 make("UICorner",{CornerRadius=UDim.new(1,0)},profile)
@@ -203,13 +211,13 @@ local ring = make("UIStroke",{Color=accent,Thickness=1.4,Transparency=.2},profil
 local pulse = TweenService:Create(ring,TweenInfo.new(2,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Transparency=.75})
 pulse:Play()
 profilePulse=pulse
-local ui={make=make,text=text,button=button,click=click,notify=notify}
+local ui={make=make,text=text,button=button,navButton=navButton,click=click,notify=notify}
 wardrobe=Wardrobe.mount(menu,ui,characterRemote,function()
-	home.Visible=true
+	Motion.enter(home,-1,reducedMotion)
 	GuiService.SelectedObject=profile
 end,function(value) characterProfile=value end,function() return reducedMotion end)
 profile.Activated:Connect(function()
-	click()
+	swipe()
 	if not characterProfile then return end
 	closePanel(); home.Visible=false
 	wardrobe.open(characterProfile)
@@ -245,11 +253,36 @@ for _,y in {0,1} do
 	local bar = make("Frame",{Size=UDim2.new(1,0,0,.0),Position=UDim2.fromScale(0,y),AnchorPoint=Vector2.new(0,y),BackgroundColor3=Color3.new(),BorderSizePixel=0,ZIndex=2},root)
 	table.insert(bars,bar)
 end
+local stopDiner
+local dinerScene
+local function beginDiner()
+	if state~="menu" or not characterProfile then return end
+	state="loading"; menu.Visible=false
+	local ok,err=StoryLoading.run(root,ui,{
+		function() dinerScene=DinerOpening.create(characterProfile) end,
+		function() dinerScene.prepare() end,
+	},function() return reducedMotion end)
+	if not ok then
+		if dinerScene then dinerScene.destroy(); dinerScene=nil end
+		state="menu"; menu.Visible=true
+		notify("The opening could not load. Please try again."); warn(err); return
+	end
+	state="diner"
+	stopDiner=dinerScene.play(root,ui,function()
+		stopDiner=nil; dinerScene=nil
+		state="menu"; closePanel(); menu.Visible=true
+	end,function() return reducedMotion end)
+end
 local function startStory()
 	if state~="opening" then return end
-	state="cinematic"; opening.Visible=false
-	if not scene then scene=DesertScene.create() end
-	angle=math.rad(-38); scene.setLowEffects(lowEffects)
+	state="loading"; opening.Visible=false
+	local ok,err=StoryLoading.run(root,ui,{
+		function() if not scene then scene=DesertScene.create() end end,
+		function() angle=math.rad(-38); scene.setLowEffects(lowEffects) end,
+		function() game:GetService("ContentProvider"):PreloadAsync({sound,swipeSound}) end,
+	},function() return reducedMotion end)
+	if not ok then state="opening"; opening.Visible=true; notify("Story Mode could not load. Please try again."); warn(err); return end
+	state="cinematic"
 	root.BackgroundTransparency=1
 	shade.Visible=true
 	for _,bar in bars do tween(bar,.6,{Size=UDim2.new(1,0,.06,0)}) end
@@ -261,8 +294,8 @@ local function startStory()
 		tween(menu,.8,{GroupTransparency=0})
 	end)
 end
-storyButton=button(opening,"STORY MODE",UDim2.fromOffset(20,30),UDim2.fromOffset(260,50),startStory)
-onlineButton=button(opening,"ONLINE",UDim2.fromOffset(320,30),UDim2.fromOffset(260,50),function() remote:FireServer("online") end)
+storyButton=navButton(opening,"STORY MODE",UDim2.fromOffset(20,30),UDim2.fromOffset(260,50),startStory)
+onlineButton=navButton(opening,"ONLINE",UDim2.fromOffset(320,30),UDim2.fromOffset(260,50),function() remote:FireServer("online") end)
 storyButton.TextXAlignment,onlineButton.TextXAlignment=Enum.TextXAlignment.Center,Enum.TextXAlignment.Center
 storyButton.TextTransparency,onlineButton.TextTransparency=1,1
 storyButton.Visible,onlineButton.Visible=false,false
@@ -273,7 +306,8 @@ button(invitationFrame,"Accept",UDim2.fromOffset(20,80),UDim2.fromOffset(140,44)
 button(invitationFrame,"Decline",UDim2.fromOffset(180,80),UDim2.fromOffset(140,44),function() invitationFrame.Visible=false; remote:FireServer("decline") end)
 local inviteVersion=0
 remote.OnClientEvent:Connect(function(action,value)
-	if action=="message" then notify(value)
+	if action=="storyOpening" then task.spawn(beginDiner)
+	elseif action=="message" then notify(value)
 	elseif action=="party" then party=value; if refreshPanel and panel.Visible then refreshPanel() end
 	elseif action=="invitation" then
 		inviteVersion+=1
@@ -309,6 +343,7 @@ if profileOK and savedProfile.ok and savedProfile.profile then revealModes(saved
 else flowCleanup=CharacterFlow.start(root,ui,characterRemote,revealModes) end
 script.Destroying:Connect(function()
 	renderConnection:Disconnect(); pulse:Cancel()
+	if stopDiner then stopDiner() elseif dinerScene then dinerScene.destroy() end
 	wardrobe.destroy()
 	if flowCleanup then flowCleanup() end
 	ContextActionService:UnbindAction("MenuBlocksMovement")

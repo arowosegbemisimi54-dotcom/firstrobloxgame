@@ -9,6 +9,8 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 suites = {
+    'diner-integration': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau', '-- INSERT_DINER': 'src/client/DinerOpening.luau'},
+    'diner': {'-- INSERT_TIMELINE': 'src/shared/DinerTimeline.luau'},
     'character': {
         '-- INSERT_CATALOG': 'src/shared/CharacterCatalog.luau',
         '-- INSERT_CHARACTER_SERVER': 'src/server/CharacterService.server.luau',

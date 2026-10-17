@@ -100,7 +100,13 @@ remote.OnServerEvent:Connect(function(player, action, value)
 			local member = Players:GetPlayerByUserId(id)
 			if member then table.insert(members,member) end
 		end
-		travel(player,Config.StoryPlaceId,members,true)
+		if Config.StoryPlaceId>0 then
+			travel(player,Config.StoryPlaceId,members,true)
+		else
+			if now-(party.lastOpening or -math.huge)<2 then return end
+			party.lastOpening=now
+			for _,member in members do remote:FireClient(member,"storyOpening") end
+		end
 	end
 	broadcast()
 end)
