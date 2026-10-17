@@ -41,6 +41,13 @@ function Outfit.apply(character,profile)
 		local foot=character:FindFirstChild(name)
 		if foot then foot.Color=leather end
 	end
+	for _,side in {"Left","Right"} do
+		local arm=character:FindFirstChild(side.." Arm")
+		if arm then
+			piece(folder,arm,"Visible hand",Vector3.new(arm.Size.X*1.01,.32,arm.Size.Z*1.01),CFrame.new(0,-arm.Size.Y*.42,0),skin,nil,Enum.Material.SmoothPlastic)
+			piece(folder,arm,"Rolled shirt cuff",Vector3.new(arm.Size.X*1.035,.15,arm.Size.Z*1.035),CFrame.new(0,-arm.Size.Y*.3,0),shirt:Lerp(Color3.new(1,1,1),.14))
+		end
+	end
 	local front=-torso.Size.Z/2-.035
 	piece(folder,torso,"Button placket",Vector3.new(.13,torso.Size.Y*.84,.07),CFrame.new(girl and .10 or 0,0,front),shirt:Lerp(Color3.new(),.18))
 	for i=1,4 do
@@ -48,6 +55,7 @@ function Outfit.apply(character,profile)
 	end
 	for _,side in {-1,1} do
 		piece(folder,torso,"Open collar",Vector3.new(.38,.23,.08),CFrame.new(side*.22,torso.Size.Y*.37,front)*CFrame.Angles(0,0,side*.32),shirt:Lerp(Color3.new(1,1,1),.12))
+		piece(folder,torso,"Pocket stitched edge",Vector3.new(.39,.025,.08),CFrame.new(side*.55,torso.Size.Y*.12+.15,front-.015),shirt:Lerp(Color3.new(1,1,1),.26))
 		piece(folder,torso,"Worn pocket",Vector3.new(.38,.32,.065),CFrame.new(side*.55,torso.Size.Y*.12,front),shirt:Lerp(Color3.new(),.08))
 	end
 	local waist=character:FindFirstChild("LowerTorso") or torso
@@ -66,16 +74,24 @@ function Outfit.apply(character,profile)
 		local foot=character:FindFirstChild(side.."Foot") or leg
 		if foot then
 			local bootY=character:FindFirstChild(side.."Foot") and 0 or -foot.Size.Y*.38
-			piece(folder,foot,"Western boot",Vector3.new(foot.Size.X*1.1,.46,foot.Size.Z*1.14),CFrame.new(0,bootY-.04,-.03),leather,nil,Enum.Material.Leather)
+			piece(folder,foot,"Western boot",Vector3.new(foot.Size.X*1.025,.44,foot.Size.Z*1.035),CFrame.new(0,bootY-.04,-.03),leather,nil,Enum.Material.Leather)
+			piece(folder,foot,"Rounded leather toe",Vector3.new(foot.Size.X*1.035,.35,foot.Size.Z*.8),CFrame.new(0,bootY-.13,-foot.Size.Z*.4),leather,Enum.PartType.Ball,Enum.Material.Leather)
+			piece(folder,foot,"Boot stitched welt",Vector3.new(foot.Size.X*1.06,.045,foot.Size.Z*1.2),CFrame.new(0,bootY-.25,-.08),Color3.fromRGB(150,111,64),nil,Enum.Material.Leather)
+			piece(folder,foot,"Stacked boot heel",Vector3.new(foot.Size.X*.86,.14,foot.Size.Z*.4),CFrame.new(0,bootY-.4,foot.Size.Z*.29),Color3.fromRGB(48,37,28),nil,Enum.Material.Leather)
 			piece(folder,foot,"Boot sole",Vector3.new(foot.Size.X*1.12,.1,foot.Size.Z*1.16),CFrame.new(0,bootY-.3,-.03),Color3.fromRGB(48,37,28),nil,Enum.Material.Rubber)
 		end
 	end
 	local head=character:FindFirstChild("Head")
 	if head and outfit.Hat=="cowboy" then
 		local hat=girl and Color3.fromRGB(112,77,49) or Color3.fromRGB(149,115,70)
-		piece(folder,head,"Cowboy brim",Vector3.new(.12,head.Size.X*1.65,head.Size.Z*2.0),CFrame.new(0,head.Size.Y*.57,0)*CFrame.Angles(0,0,math.pi/2),hat,Enum.PartType.Cylinder)
-		piece(folder,head,"Cowboy crown",Vector3.new(head.Size.X*.9,.65,head.Size.Z*1.05),CFrame.new(0,head.Size.Y*.57+.28,0),hat,Enum.PartType.Ball)
-		piece(folder,head,"Hat band",Vector3.new(head.Size.X*.92,.13,head.Size.Z*1.07),CFrame.new(0,head.Size.Y*.57+.1,0),leather)
+		local brimY=head.Size.Y*.58
+		piece(folder,head,"Shaped cowboy brim",Vector3.new(.085,head.Size.X*1.28,head.Size.Z*1.8),CFrame.new(0,brimY,0)*CFrame.Angles(0,0,math.pi/2),hat,Enum.PartType.Cylinder)
+		piece(folder,head,"Creased felt crown",Vector3.new(head.Size.X*.82,.66,head.Size.Z*1.03),CFrame.new(0,brimY+.28,0),hat,Enum.PartType.Ball)
+		for _,side in {-1,1} do
+			piece(folder,head,"Upturned brim edge",Vector3.new(.34,.085,head.Size.Z*1.3),CFrame.new(side*head.Size.X*.57,brimY+.05,0)*CFrame.Angles(0,0,side*.22),hat)
+		end
+		piece(folder,head,"Leather hat band",Vector3.new(head.Size.X*.81,.11,head.Size.Z*1.04),CFrame.new(0,brimY+.1,0),leather,nil,Enum.Material.Leather)
+		piece(folder,head,"Hat band brass clasp",Vector3.new(.1,.09,.06),CFrame.new(-head.Size.X*.29,brimY+.1,-head.Size.Z*.53),Color3.fromRGB(179,143,78),nil,Enum.Material.Metal)
 	end
 
 end
