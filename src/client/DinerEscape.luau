@@ -215,7 +215,9 @@ function Escape.start(ctx)
   elseif name=="bill" then
    positionVehicle(ext.van,V(180+u*110,.7,140),-math.pi/2); seatHero(); for _,person in props.crew do vanish(person) end
    local billPos=V(173,2.5,140):Lerp(V(164,5.2,135),ease)+V(0,math.sin(u*math.pi)*2,0)
-   props.airborne.CFrame=CFrame.new(origin+billPos)*CFrame.Angles(u*math.pi*3,0,math.sin(t*4)*.6)
+   local flutter=CFrame.new(origin+billPos)*CFrame.Angles(u*math.pi*3,0,math.sin(t*4)*.6)
+   local lens=CFrame.lookAt(origin+billPos,origin+V(164,5.2,134.8))*CFrame.Angles(math.pi/2,0,0)
+   props.airborne.CFrame=flutter:Lerp(lens,math.clamp((u-.7)/.3,0,1))
    view(V(164,5.2,134.8),billPos,43,dt,false)
   elseif name=="title" then
    positionVehicle(ext.van,V(290,.7,140),-math.pi/2); seatHero()
@@ -246,10 +248,10 @@ function Escape.start(ctx)
    local u=state.time/Rules.paymentDuration
    pose(hero,heroPos,math.pi,0,true); ctx.setJoint(hero,"RightShoulder",CFrame.Angles(.4+math.sin(u*math.pi)*1.1,0,-.2))
    props.payment.Transparency=0; for _,g in props.payment:GetChildren() do if g:IsA("SurfaceGui") then g.Enabled=true end end
-   props.payment.CFrame=CFrame.new(origin+V(-31.5,3.8,-10):Lerp(V(-33.9,2.99,-6.4),math.clamp(u/.8,0,1)))
+   props.payment.CFrame=CFrame.new(origin+V(-31.5,3.8,-10):Lerp(V(-33.9,3.055,-6.4),math.clamp(u/.8,0,1)))
    view(V(-28,6,-5),V(-32,3,-7),48,dt,false)
   elseif phase=="stand" then
-   props.payment.CFrame=CFrame.new(origin+V(-33.9,2.99,-6.4)); heroPos=V(-31,2.65,-10.5):Lerp(V(-21,3,-10.5),state.time)
+   props.payment.CFrame=CFrame.new(origin+V(-33.9,3.055,-6.4)); heroPos=V(-31,2.65,-10.5):Lerp(V(-21,3,-10.5),state.time)
    pose(hero,heroPos,-math.pi/2,1,false); view(heroPos+V(0,4,-8),heroPos+V(0,1,0),62,dt,true)
   elseif phase=="walk" then
    if state.time>5 then subtitle.Visible=false end
@@ -292,8 +294,8 @@ function Escape.start(ctx)
    end
    local result=Rules.mission(mission,car,nearest,dt)
    if mission.lost then audio.stop("siren"); objective.Text="Patrol lost. Reach OLD MOTOR DEPOT and stop in the driveway." end
-   local distance=math.floor(math.sqrt((car.x-920)^2+(car.z-175)^2))
-   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  Space / LT: brake",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ EAST" or "↑ DRIVEWAY")
+   local distance=math.floor(math.sqrt((car.x-Rules.destination.x)^2+(car.z-Rules.destination.z)^2))
+   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  Space / LT: brake",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
    audio.engine(car.speed)
    local target=V(car.x,3,car.z); view(target+V(math.sin(car.yaw)*19,8,math.cos(car.yaw)*19),target+V(-math.sin(car.yaw)*9,0,-math.cos(car.yaw)*9),ctx.reducedMotion() and 65 or 65+math.abs(car.speed)*.08,dt,true)
    if result then finishMission(result) end

@@ -24,7 +24,7 @@ function Props.build(ctx)
  local receipt=p("Diner handwritten check",V(.62,.015,.95),V(-30.6,3.02,-7),C(231,218,180))
  local gui=Instance.new("SurfaceGui"); gui.Face=Enum.NormalId.Top; gui.CanvasSize=Vector2.new(280,430); gui.Parent=receipt
  local text=Instance.new("TextLabel"); text.Size=UDim2.fromScale(1,1); text.Text="SUNSET DINER\nCHECK No. 0417\n──────────\nHot lunch    1.25\nCoffee        .10\nPie           .25\nTax           .05\n──────────\nTOTAL       $1.65\n\nThank you!"; text.Font=Enum.Font.SpecialElite; text.TextScaled=true; text.TextColor3=C(54,49,38); text.BackgroundTransparency=1; text.Parent=gui
- local payment=paper("Payment hundred dollar bill",V(-33.9,2.99,-6.4),"100"); payment.Transparency=1
+ local payment=paper("Payment hundred dollar bill",V(-33.9,3.055,-6.4),"100"); payment.Transparency=1
  for _,g in payment:GetChildren() do if g:IsA("SurfaceGui") then g.Enabled=false end end
  local airborne=paper("Escaping hundred dollar bill",V(60,-20,-53),"100")
  local truck=ext.parked(4,V(-115,0,-55),-math.pi/2); truck.Name="Damaged primary getaway pickup"

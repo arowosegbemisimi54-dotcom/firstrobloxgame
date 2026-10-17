@@ -1,5 +1,5 @@
 -- Pure chapter timing and driving rules: shared by runtime and headless checks.
-local Rules={paymentDuration=1,boardingDuration=1.5}
+local Rules={paymentDuration=1,boardingDuration=1.5,destination={x=920,z=163}}
 Rules.shots={
  {name="truck",duration=2}, {name="reveal",duration=1.5},
  {name="unload",duration=6}, {name="approach",duration=4},
@@ -39,10 +39,14 @@ function Rules.walkable(x,z)
  return (x>=-22 and x<=8 and z>=-31 and z<=32) or (math.abs(x)<=2.2 and z>=31 and z<=48)
 end
 function Rules.drivable(x,z)
+ -- Expanded parked-car footprints include clearance for the panel van.
+ for _,parked in {{-68,62},{-36,109},{12,109},{60,62}} do
+  if math.abs(x-parked[1])<5.6 and math.abs(z-parked[2])<11.5 then return false end
+ end
  return (x>=-230 and x<=1200 and z>=130 and z<=150)
-  or (x>=50 and x<=77 and z>=-60 and z<=150)
-  or (x>=-107 and x<=80 and z>=42 and z<=123)
-  or (x>=900 and x<=940 and z>=130 and z<=179)
+  or (x>=54 and x<=77 and z>=-60 and z<=150)
+  or (x>=-107 and x<=80 and z>=44 and z<=123)
+  or (x>=900 and x<=940 and z>=130 and z<=165)
 end
 function Rules.drive(car,throttle,steer,brake,dt)
  dt=math.clamp(dt,0,.05)
@@ -61,7 +65,7 @@ function Rules.mission(mission,car,nearest,dt)
  if mission.clearTime>=4 then mission.lost=true end
  if not mission.lost and nearest<17 and math.abs(car.speed)<8 then mission.bustTime+=dt else mission.bustTime=0 end
  if mission.bustTime>=4 then mission.result="caught" end
- local distance=math.sqrt((car.x-920)^2+(car.z-175)^2)
+ local distance=math.sqrt((car.x-Rules.destination.x)^2+(car.z-Rules.destination.z)^2)
  if mission.lost and distance<13 and math.abs(car.speed)<6 then mission.result="safe" end
  return mission.result
 end

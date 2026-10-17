@@ -21,6 +21,15 @@ function Exterior.build(parent,origin)
   end
  end
  for z=-40,24,16 do part("Side parking divider",V(16,.02,.12),V(-88,.04,z),cream) end
+ part("Highway desert verge",V(3200,.8,420),V(350,-.6,140),C(151,128,91),Enum.Material.Sand)
+ for x=180,1080,90 do
+  for _,z in {111,169} do
+   part("Highway fence post",V(.2,2.3,.2),V(x,1.15,z),C(108,88,58),Enum.Material.Wood)
+   if not (z==169 and x==900) then part("Weathered fence rail",V(89,.13,.13),V(x+44.5,1.4,z),C(117,99,70),Enum.Material.Wood) end
+  end
+  part("Route cottonwood trunk",V(.7,6,.7),V(x,3,205),C(97,76,49),Enum.Material.Wood)
+  part("Route cottonwood canopy",V(9,8,9),V(x,8,205),C(91,109,61),Enum.Material.Grass,Enum.PartType.Ball)
+ end
  part("Highway Four",V(3200,.14,28),V(350,-.03,140),C(61,61,56),Enum.Material.Asphalt)
  for x=-1100,1800,28 do part("Highway dash",V(12,.025,.18),V(x,.06,140),C(210,185,113)) end
  for _,z in {127,153} do part("Highway edge line",V(3200,.025,.13),V(350,.06,z),cream) end
@@ -126,6 +135,6 @@ function Exterior.build(parent,origin)
  building(920,185,36,12,26,"OLD MOTOR DEPOT",C(130,116,89))
  part("Depot driveway",V(50,.1,45),V(920,0,166),asphalt,Enum.Material.Asphalt)
  return {model=model,van=van,driverDoor=driverDoor,passengerDoor=passengerDoor,cargoDoor=cargoDoor,door=door,part=part,parked=parked,origin=origin,
-  vanStart=V(60,.7,-53),safehouse=V(920,0,175),exit=V(0,0,44)}
+  vanStart=V(60,.7,-53),safehouse=V(920,0,163),exit=V(0,0,44)}
 end
 return Exterior

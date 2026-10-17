@@ -17,7 +17,7 @@ or persistent mission progress are granted by the local controller.
 4. The exterior sequence locks movement: damaged pickup arrival, panel van
    reveal, four masked crew, 1.5-second boarding, police, escape, banknote and
    title drop. Reduced Motion removes camera shake and speed-based FOV changes.
-5. Drive east along Highway Four. WASD, left stick or RT accelerates; S reverses;
+5. Drive west along Highway Four. WASD, left stick or RT accelerates; S reverses;
    Space/LT brakes. Touch controls are provided. Gain 150 studs on the patrol
    for four seconds, then turn into OLD MOTOR DEPOT at the end of the route.
    Stop in its driveway to finish. Being stopped near patrol for four seconds

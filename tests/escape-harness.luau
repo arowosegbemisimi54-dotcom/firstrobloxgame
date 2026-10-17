@@ -16,7 +16,8 @@ for _,shot in Rules.shots do if shot.name=="board" then board=shot.duration end 
 check(board==1.5,"crew boarding lasts exactly 1.5 seconds")
 Rules.advance(s,100); check(s.phase=="drive","entire cinematic hands off into driving")
 check(Rules.walkable(0,40) and not Rules.walkable(5,40) and not Rules.walkable(-30,0),"walking respects doorway and booth boundaries")
-check(Rules.drivable(920,175) and not Rules.drivable(850,175),"safehouse driveway is reachable without driving through neighboring buildings")
+check(Rules.drivable(920,163) and not Rules.drivable(850,175),"safehouse driveway is reachable without driving through neighboring buildings")
+check(not Rules.drivable(60,62) and Rules.drivable(68,62),"parked vehicles block driving while keeping the alley lane open")
 local car={x=180,z=140,yaw=-math.pi/2,speed=0}
 for _=1,120 do Rules.drive(car,1,0,false,1/60) end
 check(car.x>220 and car.speed>50,"throttle advances vehicle along its heading")
@@ -25,7 +26,7 @@ check(math.abs(car.speed)<.01,"brake brings vehicle to rest")
 local edge={x=1199.9,z=140,yaw=-math.pi/2,speed=70}
 check(Rules.drive(edge,1,0,false,.05) and edge.x==1199.9,"road boundary blocks vehicle instead of clipping through scenery")
 local mission={clearTime=0,bustTime=0,lost=false}
-local depot={x=920,z=175,speed=0}
+local depot={x=920,z=163,speed=0}
 check(not Rules.mission(mission,depot,80,1),"safehouse cannot complete while still pursued")
 Rules.mission(mission,depot,180,3.9); check(not mission.lost,"escape requires sustained distance from patrol")
 check(Rules.mission(mission,depot,180,.1)=="safe","lost patrol plus stopped vehicle at depot completes mission")
