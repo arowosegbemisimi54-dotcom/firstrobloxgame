@@ -84,7 +84,15 @@ function Motion.pose(person,origin,pos,yaw,dt,seated,time)
   local delta=pos-previous
   yaw=math.atan2(-delta.X,-delta.Z)
  end
- local pose=Motion.sample(person.distance,speed,seated,person.style,time)
+ -- Blend between idle, walk and run without popping the elbows or knees.
+ person.motionSpeed=(person.motionSpeed or 0)+(speed-(person.motionSpeed or 0))*(1-math.exp(-math.max(dt,0)*14))
+ if seated then person.motionSpeed=0 end
+ if person.motionYaw and travel>0 and not seated then
+  local turn=(yaw-person.motionYaw+math.pi)%(2*math.pi)-math.pi
+  yaw=person.motionYaw+turn*(1-math.exp(-math.max(dt,0)*14))
+ end
+ person.motionYaw=yaw
+ local pose=Motion.sample(person.distance,person.motionSpeed,seated,person.style,time)
  for _,joint in {"LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle","LeftShoulder","RightShoulder","LeftElbow","RightElbow"} do Motion.joint(person,joint,CFrame.Angles(pose[joint],0,0)) end
  Motion.joint(person,"Waist",CFrame.Angles(pose.lean,pose.twist,0))
  Motion.joint(person,"Neck",CFrame.Angles(.03,pose.glance,0))

@@ -86,3 +86,18 @@ handling adjustments await accessible clips.
   watch both cruisers turn and stop, then both officers exit and approach. Check
   garments and facial features follow joints throughout, including at low FPS.
   Automated tests cover transforms and path continuity, not final visual quality.
+
+
+### Supplied narration and driving references
+
+Follow `assets/audio/README.md` to activate the supplied Robert MP3 with a Roblox
+asset ID. Verify the report is continuous across all four camera/caption sections
+and static begins only after it finishes. Test a missing/denied asset: captions
+and gameplay must still proceed, with an Output warning.
+
+In the driving section test L / D-pad left / Lights, and B / D-pad right / Wipers.
+Click both dashboard switches in cabin view with the mouse. Turn wipers off
+mid-sweep and confirm they finish the sweep and park. Test gradual steering and
+return-to-center at low and high speeds, reverse wheel motion, cabin arm movement,
+and reduced-motion camera behavior. See `docs/video-reference-review.md` for the
+specific reviewed sequences and the boundaries of the changes.

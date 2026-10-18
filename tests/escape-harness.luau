@@ -25,6 +25,26 @@ for _=1,120 do Rules.drive(car,0,0,true,1/60) end
 check(math.abs(car.speed)<.01,"brake brings vehicle to rest")
 local edge={x=1199.9,z=140,yaw=-math.pi/2,speed=70}
 check(Rules.drive(edge,1,0,false,.05) and edge.x==1199.9,"road boundary blocks vehicle instead of clipping through scenery")
+local rack={x=68,z=0,yaw=0,speed=10}
+Rules.drive(rack,0,1,false,1/60)
+check(rack.steer>0 and rack.steer<.2,"steering begins progressively instead of snapping to full lock")
+local heldRack=rack.steer
+Rules.drive(rack,0,0,false,1/60)
+check(rack.steer>0 and rack.steer<heldRack,"steering recenters smoothly after releasing input")
+local slow={x=68,z=0,yaw=0,speed=10,steer=1}
+local fast={x=68,z=0,yaw=0,speed=70,steer=1}
+Rules.drive(slow,0,1,false,1/60); Rules.drive(fast,0,1,false,1/60)
+check(math.abs(fast.wheelAngle)<math.abs(slow.wheelAngle)*.5,"high speed reduces road-wheel angle for stable corrections")
+local reverse={x=68,z=0,yaw=0,speed=-10,steer=1}
+Rules.drive(reverse,0,1,false,1/60)
+check(reverse.yaw>0 and slow.yaw<0,"reverse steering turns opposite to forward steering")
+local function simulate(rate)
+ local c={x=68,z=0,yaw=0,speed=10}
+ for _=1,rate do Rules.drive(c,0,.2,false,1/rate) end
+ return c
+end
+local low,high=simulate(30),simulate(120)
+check(math.abs(low.x-high.x)<.3 and math.abs(low.z-high.z)<.3 and math.abs(low.yaw-high.yaw)<.03,"steering response remains consistent at 30 and 120 FPS")
 local mission={clearTime=0,bustTime=0,lost=false}
 local depot={x=920,z=163,speed=0}
 check(not Rules.mission(mission,depot,80,1),"safehouse cannot complete while still pursued")

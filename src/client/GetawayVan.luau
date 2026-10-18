@@ -3,6 +3,7 @@ local Van={}
 function Van.build(part,origin,parent)
  local V,C=Vector3.new,Color3.fromRGB
  local model=Instance.new("Model"); model.Name="Matte black getaway panel van"; model.Parent=parent
+ local switches,lights,wipers={},{},{}
  local paint=C(34,39,35); local chrome=C(169,175,166); local rubber=C(27,28,26); local leather=C(90,64,40)
  local function p(name,size,pos,color,material,shape,where)
   return part(name,size,pos,color,material,shape,where or model)
@@ -29,7 +30,12 @@ function Van.build(part,origin,parent)
  p("Front rounded shoulder",V(5.9,.5,.55),V(0,3.45,-5.92),paint,Enum.Material.Metal,Enum.PartType.Ball)
  for _,x in {-1.4,1.4} do
   local pane=p("Split van windshield",V(2.55,2.15,.08),V(x,4.83,-6.06),C(183,207,202),Enum.Material.Glass); pane.Transparency=.82; pane.CastShadow=false
-  local wiper=p("Windshield wiper",V(.055,1.25,.055),V(x-.35,4.5,-6.13),rubber,Enum.Material.Metal); wiper.CFrame*=CFrame.Angles(0,0,-.48)
+  local wiper=Instance.new("Model"); wiper.Name="Working windshield wiper"; wiper.Parent=model
+  p("Wiper spindle",V(.14,.14,.09),V(x,3.91,-6.14),chrome,Enum.Material.Metal,Enum.PartType.Ball,wiper)
+  p("Windshield wiper arm",V(.055,1.15,.055),V(x,4.48,-6.14),chrome,Enum.Material.Metal,nil,wiper)
+  p("Rubber wiper blade",V(.075,.75,.075),V(x,4.75,-6.18),rubber,Enum.Material.Rubber,nil,wiper)
+  wiper.WorldPivot=CFrame.new(origin+V(x,3.91,-6.14))
+  table.insert(wipers,wiper)
  end
  for _,x in {-2.88,0,2.88} do p("Windshield metal pillar",V(.13,2.75,.22),V(x,4.85,-6.05),chrome,Enum.Material.Metal) end
  p("Dashboard shelf",V(5.5,.22,.85),V(0,3.65,-5.42),C(68,70,61),Enum.Material.Metal)
@@ -44,7 +50,13 @@ function Van.build(part,origin,parent)
    needle=Instance.new("Frame"); needle.Name="Speedometer needle"; needle.AnchorPoint=Vector2.new(.5,1); needle.Position=UDim2.fromScale(.5,.55); needle.Size=UDim2.fromScale(.025,.31); needle.BackgroundColor3=C(205,70,38); needle.BorderSizePixel=0; needle.Rotation=-110; needle.Parent=text
   end
  end
- for x=.9,2.2,.45 do p("Dashboard ivory pull switch",V(.12,.12,.15),V(x,3.35,-4.86),C(220,208,171),nil,Enum.PartType.Ball) end
+ for i,spec in {{"lights","LIGHTS · L"},{"wipers","WIPERS · B"}} do
+  local switch=p("Dashboard "..spec[1].." switch",V(.18,.18,.16),V(.9+(i-1)*.55,3.25,-4.82),C(220,208,171),nil,Enum.PartType.Ball)
+  switch.CanQuery=true; switches[spec[1]]=switch
+  local plate=p("Dashboard "..spec[1].." label",V(.5,.15,.025),V(.9+(i-1)*.55,3.48,-4.81),paint)
+  local gui=Instance.new("SurfaceGui"); gui.Face=Enum.NormalId.Back; gui.CanvasSize=Vector2.new(240,64); gui.Parent=plate
+  local caption=Instance.new("TextLabel"); caption.Size=UDim2.fromScale(1,1); caption.Text=spec[2]; caption.TextScaled=true; caption.Font=Enum.Font.SpecialElite; caption.TextColor3=C(220,208,171); caption.BackgroundTransparency=1; caption.Parent=gui
+ end
  p("Glovebox lid",V(1.3,.45,.04),V(1.6,3.45,-4.86),C(64,69,60),Enum.Material.Metal)
  p("Glovebox latch",V(.16,.08,.07),V(1.6,3.55,-4.82),chrome,Enum.Material.Metal)
  p("Floor shift lever",V(.09,1.25,.09),V(.3,1.9,-4.15),chrome,Enum.Material.Metal).CFrame*=CFrame.Angles(-.25,0,0)
@@ -68,7 +80,7 @@ function Van.build(part,origin,parent)
   table.insert(mirrors,glass)
   p("Chrome headlamp rim",V(.95,.95,.2),V(side*2.05,2.5,-6.25),chrome,nil,Enum.PartType.Ball)
   local lens=p("Warm headlamp lens",V(.76,.76,.12),V(side*2.05,2.5,-6.38),C(237,222,170),Enum.Material.Glass,Enum.PartType.Ball)
-  local beam=Instance.new("SpotLight"); beam.Face=Enum.NormalId.Front; beam.Angle=65; beam.Range=55; beam.Brightness=1.2; beam.Color=lens.Color; beam.Parent=lens
+  local beam=Instance.new("SpotLight"); beam.Face=Enum.NormalId.Front; beam.Angle=65; beam.Range=55; beam.Brightness=1.2; beam.Color=lens.Color; beam.Parent=lens; table.insert(lights,{beam=beam,lens=lens})
   p("Rear red tail lamp",V(.25,.45,.08),V(side*2.55,2.5,5.98),C(157,32,24),Enum.Material.Glass)
  end
  p("Radiator grille recess",V(2.45,2.4,.12),V(0,2.25,-6.24),rubber)
@@ -102,6 +114,6 @@ function Van.build(part,origin,parent)
  cargo.WorldPivot=CFrame.new(origin+V(2.9,1.3,5.86))
  model.WorldPivot=CFrame.new(origin)
  model:PivotTo(CFrame.new(origin+V(60,.7,-53))*CFrame.Angles(0,-math.pi/2,0))
- return {wheels=wheels,model=model,driver=driver,passenger=passenger,cargo=cargo,wheel=wheel,needle=needle,mirrors=mirrors}
+ return {switches=switches,lights=lights,wipers=wipers,wheels=wheels,model=model,driver=driver,passenger=passenger,cargo=cargo,wheel=wheel,needle=needle,mirrors=mirrors}
 end
 return Van

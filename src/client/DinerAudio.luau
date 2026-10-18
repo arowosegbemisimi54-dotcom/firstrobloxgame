@@ -1,5 +1,6 @@
 -- Optional platform narration with subtitles always available. A single source
 -- plays the news through the countertop radio.
+local Timeline=require(game:GetService("ReplicatedStorage"):WaitForChild("GameShared").DinerTimeline)
 local Audio={}
 Audio.assets={static="",chatter="",squelch=""}
 function Audio.create(parent,radio,dialogue)
@@ -14,6 +15,20 @@ function Audio.create(parent,radio,dialogue)
  local strikes={}
  local function sound(where,name,speed,volume,loop)
   local s=Instance.new("Sound"); s.Name=name; s.SoundId="rbxasset://sounds/switch.wav"; s.PlaybackSpeed=speed; s.Volume=volume; s.Looped=loop or false; s.RollOffMinDistance=12; s.RollOffMaxDistance=110; s.Parent=where; return s
+ end
+ local recording
+ local recordingStarted=false
+ if Timeline.hasRecording() then
+  recording=sound(radio,"Recorded Blox News report",1,.7)
+  local id=Timeline.recording.assetId
+  recording.SoundId=id:match("^%d+$") and "rbxassetid://"..id or id
+  local tone=Instance.new("EqualizerSoundEffect"); tone.LowGain=-4; tone.HighGain=-2; tone.MidGain=0; tone.Parent=recording
+  task.spawn(function()
+   local loaded=pcall(function() game:GetService("ContentProvider"):PreloadAsync({recording}) end)
+   if not destroyed and (not loaded or not recording.IsLoaded) then
+    warn("News recording could not load. Check the audio asset's experience permissions; subtitles remain available.")
+   end
+  end)
  end
  local stingers={}
  for _,source in {radio} do
@@ -52,7 +67,9 @@ function Audio.create(parent,radio,dialogue)
   end
   local listener=Instance.new("AudioListener"); listener.PositionInstance=workspace.CurrentCamera; listener.AudioInteractionGroup="DinerOpening"; listener.Parent=folder
   local output=Instance.new("AudioDeviceOutput"); output.Player=game:GetService("Players").LocalPlayer; output.Parent=folder; wire(listener,output)
-  for shot,text in dialogue do speech(text,"7",.55,emitters,function(source) voices[shot]=source end) end
+  if not recording then
+   for shot,text in dialogue do speech(text,"7",.55,emitters,function(source) voices[shot]=source end) end
+  end
   speech("Mm-hm. Yeah, mm-hm.", "2",.026,emitters,function(source) table.insert(ambient,source) end)
   speech("Oh... hmm. Right.", "3",.022,emitters,function(source) table.insert(ambient,source) end)
  end)
@@ -60,6 +77,18 @@ function Audio.create(parent,radio,dialogue)
  return {
   update=function(shot,time)
    if destroyed then return end
+   if recording then
+    local cursor=Timeline.recordingTime(shot,time)
+    if cursor then
+     if recording.IsLoaded and cursor<recording.TimeLength-.02 then
+      if not recordingStarted then
+       recording.TimePosition=cursor; recording:Play(); recordingStarted=true
+      elseif math.abs(recording.TimePosition-cursor)>.4 then
+       recording.TimePosition=cursor
+      end
+     end
+    elseif recordingStarted then recording:Stop(); recordingStarted=false end
+   end
    if shot~=lastShot then
     if activeVoice then activeVoice:Pause(); activeVoice=nil end
     for _,voice in ambient do voice:Pause() end
@@ -95,6 +124,7 @@ function Audio.create(parent,radio,dialogue)
   available=function() return ok end,
   destroy=function()
    destroyed=true
+   if recording then recording:Stop(); recording:Destroy() end
    for _,source in voices do source:Pause() end
    for _,source in ambient do source:Pause() end
    for _,tones in stingers do for _,tone in tones do tone:Destroy() end end

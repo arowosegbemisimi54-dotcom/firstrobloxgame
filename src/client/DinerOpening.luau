@@ -154,7 +154,7 @@ function Diner.create(profile)
 					return
 				end
 				local shot=shots[timeline.shot]
-				local t=math.clamp(timeline.elapsed/Timeline.durations[timeline.shot],0,1)
+				local t=math.clamp(timeline.elapsed/Timeline.duration(timeline),0,1)
 				local from,to,fov=shot[1],shot[2],shot[3]
 
 				local blend=t*t*(3-2*t)

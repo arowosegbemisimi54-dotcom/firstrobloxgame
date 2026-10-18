@@ -11,3 +11,29 @@ Dashboard / Studio Asset Manager, grant the experience permission, then set the
 returned rbxassetid values in DinerAudio.assets. The game currently uses quiet
 platform cue/TTS fallbacks until those IDs are configured. Plot dialogue still
 uses Roblox TTS; EscapeAudio.recordings accepts original actor recordings later.
+
+
+## Supplied news recording
+
+`news-report-robert.mp3` is the user's supplied ElevenLabs Robert recording,
+originally named
+`ElevenLabs_2026-10-18T03_21_02_Robert - Classic, Appealing and Clear_pvc_sp100_s50_sb50_v4.mp3`.
+It is preserved without edits. It is **not** covered by the CC0 dedication for
+our three procedural WAV effects above; the recording retains its applicable
+ElevenLabs/user license terms. No audio from the reference videos is included.
+
+To activate it:
+
+1. Upload the full MP3 in Roblox Creator Dashboard → Development Items → Audio.
+2. Grant the Shirts and Skins experience permission to use the resulting asset.
+3. Set `Timeline.recording.assetId` in `src/shared/DinerTimeline.luau` to the
+   returned ID in quotes, for example `"1234567890"` (replace the example).
+4. Sync/rebuild and start a fresh Play session. Check Output for audio permission
+   warnings if the recorded voice does not play.
+
+The asset ID is intentionally empty until Roblox assigns one. In this state the
+existing TTS report and its previous timings remain active. Once configured, the
+single 42.866938-second recording plays continuously; camera/caption boundaries
+occur at 0, 7.1, 20.6 and 30.2 seconds within the MP3. A late load joins the current
+position. An inaccessible configured asset leaves captions and scene progression
+working and emits a permission warning instead of layering synthetic narration.

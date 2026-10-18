@@ -50,6 +50,10 @@ function Escape.start(ctx)
  local drivePitch=.3
  local driveZoom=19
  local frameDt=1/60
+ local lightsOn=true
+ local wipersOn=false
+ local wiperPhase=0
+ local cabinRoll,cabinTilt=0,0
  local looking=false
  local originalMouse=Input.MouseBehavior
  local originalIcon=Input.MouseIconEnabled
@@ -68,6 +72,8 @@ function Escape.start(ctx)
  local lastVanPosition
  local wheelOffsets={}
  for i,w in ext.vehicle.wheels do wheelOffsets[i]=vanCF:ToObjectSpace(w.model:GetPivot()) end
+ local wiperOffsets={}
+ for i,wiper in ext.vehicle.wipers do wiperOffsets[i]=vanCF:ToObjectSpace(wiper:GetPivot()) end
  local steeringOffset=vanCF:ToObjectSpace(ext.vehicle.wheel:GetPivot())
  local bagTargets={}
  for i,bag in props.cargoBags do bagTargets[i]=vanCF:ToObjectSpace(bag.CFrame) end
@@ -77,7 +83,7 @@ function Escape.start(ctx)
  local function positionVehicle(vehicle,pos,angle)
   vehicle:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0))
   if vehicle==ext.van then
-   if lastVanPosition then wheelRoll+=math.min(20,(pos-lastVanPosition).Magnitude)/1.25 end
+   if lastVanPosition then wheelRoll+=math.min(20,(pos-lastVanPosition).Magnitude)/1.25*(state.phase=="drive" and car.speed<0 and -1 or 1) end
    lastVanPosition=pos
    for i,w in ext.vehicle.wheels do w.model:PivotTo(vehicle:GetPivot()*wheelOffsets[i]*CFrame.Angles(wheelRoll,0,0)) end
   end
@@ -116,7 +122,13 @@ function Escape.start(ctx)
  local function seatHero()
   local seat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.8)
   hero.rig:PivotTo(seat)
-  for _,side in {"Left","Right"} do ctx.setJoint(hero,side.."Hip",CFrame.Angles(1.35,0,0)); ctx.setJoint(hero,side.."Knee",CFrame.Angles(-1.35,0,0)); ctx.setJoint(hero,side.."Elbow",CFrame.Angles(.55,0,0)); ctx.setJoint(hero,side.."Shoulder",CFrame.Angles(1,0,0)) end
+  local steering=state.phase=="drive" and (car.steer or 0) or 0
+  for _,side in {"Left","Right"} do
+   local sign=side=="Left" and -1 or 1
+   ctx.setJoint(hero,side.."Hip",CFrame.Angles(1.35,0,0)); ctx.setJoint(hero,side.."Knee",CFrame.Angles(-1.35,0,0))
+   ctx.setJoint(hero,side.."Elbow",CFrame.Angles(.55+sign*steering*.22,0,0))
+   ctx.setJoint(hero,side.."Shoulder",CFrame.Angles(1+sign*steering*.18,0,-steering*.15))
+  end
  end
  local function doors(driver,passenger,cargo)
   vanCF=ext.van:GetPivot()
@@ -151,6 +163,32 @@ function Escape.start(ctx)
  local function key(name)
   return function(s) held[name]=s==Enum.UserInputState.Begin or s==Enum.UserInputState.Change end
  end
+ local function toggleLights()
+  if state.phase~="drive" then return end
+  lightsOn=not lightsOn
+  for _,light in ext.vehicle.lights do
+   light.beam.Enabled=lightsOn; light.lens.Material=lightsOn and Enum.Material.Neon or Enum.Material.Glass
+  end
+  ext.vehicle.switches.lights.Color=lightsOn and C(220,208,171) or C(112,105,87)
+  Actions:SetTitle("HighwayFour_Lights",lightsOn and "Lights ON" or "Lights OFF")
+ end
+ local function toggleWipers()
+  if state.phase~="drive" then return end
+  wipersOn=not wipersOn
+  ext.vehicle.switches.wipers.Color=wipersOn and C(220,208,171) or C(112,105,87)
+  Actions:SetTitle("HighwayFour_Wipers",wipersOn and "Wipers ON" or "Wipers OFF")
+ end
+ bind("Lights",{Enum.KeyCode.L,Enum.KeyCode.DPadLeft},function(s) if s==Enum.UserInputState.Begin then toggleLights() end end,true,"Lights ON",UDim2.fromScale(.61,.15))
+ bind("Wipers",{Enum.KeyCode.B,Enum.KeyCode.DPadRight},function(s) if s==Enum.UserInputState.Begin then toggleWipers() end end,true,"Wipers OFF",UDim2.fromScale(.76,.15))
+ table.insert(connections,Input.InputBegan:Connect(function(input,processed)
+  if processed or state.phase~="drive" or not firstPerson or input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
+  local ray=camera:ScreenPointToRay(input.Position.X,input.Position.Y)
+  local filter=RaycastParams.new(); filter.FilterType=Enum.RaycastFilterType.Include
+  filter.FilterDescendantsInstances={ext.vehicle.switches.lights,ext.vehicle.switches.wipers}
+  local hit=workspace:Raycast(ray.Origin,ray.Direction*14,filter)
+  if hit and hit.Instance==ext.vehicle.switches.lights then toggleLights()
+  elseif hit and hit.Instance==ext.vehicle.switches.wipers then toggleWipers() end
+ end))
  bind("Forward",{Enum.KeyCode.W,Enum.KeyCode.Up},key("forward"),true,"▲",UDim2.fromScale(.16,.7))
  bind("Reverse",{Enum.KeyCode.S,Enum.KeyCode.Down},key("reverse"),true,"▼",UDim2.fromScale(.16,.87))
  bind("Left",{Enum.KeyCode.A,Enum.KeyCode.Left},key("left"),true,"◀",UDim2.fromScale(.07,.79))
@@ -186,7 +224,7 @@ function Escape.start(ctx)
   for i,police in props.police do police.x=195-i*25; police.z=140; police.yaw=-math.pi/2; police.speed=38; police.lastPosition=nil; police.door:PivotTo(police.model:GetPivot()*police.doorOffset) end
   state.phase="drive"; state.time=0; title.Visible=false; subtitle.Visible=false
   objective.Visible=true; objective.Text="Lose the remaining local patrol units and reach the safehouse."
-  hint.Text="WASD / stick · Drive   Drag / right stick · Look   V · Cabin"
+  hint.Text="WASD / stick · Drive   V · Cabin   L · Lights   B · Wipers"
   audio.cue("engine"); audio.cue("siren")
  end
  local function finishMission(result)
@@ -380,21 +418,34 @@ function Escape.start(ctx)
    local result=Rules.mission(mission,car,nearest,dt)
    if mission.lost then audio.stop("siren"); objective.Text="Patrol lost. Reach OLD MOTOR DEPOT and stop in the driveway." end
    local distance=math.floor(math.sqrt((car.x-Rules.destination.x)^2+(car.z-Rules.destination.z)^2))
-   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  V: view · Drag: look",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
+   hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  V: view · Drag: look · L: lights · B: wipers",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
    audio.engine(car.speed)
    driveOrbit-=lookStick.X*dt*2; drivePitch=math.clamp(drivePitch-lookStick.Y*dt,-.22,1.1)
    Input.MouseBehavior=looking and Enum.MouseBehavior.LockCurrentPosition or originalMouse
-   for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,-steer*.35,0)*CFrame.Angles(wheelRoll,0,0)) end end
+   for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,-car.wheelAngle,0)*CFrame.Angles(wheelRoll,0,0)) end end
    ext.vehicle.needle.Rotation=-110+math.min(1,math.abs(car.speed)/78)*220
-   ext.vehicle.wheel:PivotTo(ext.van:GetPivot()*steeringOffset*CFrame.Angles(0,0,-steer*.7))
+   ext.vehicle.wheel:PivotTo(ext.van:GetPivot()*steeringOffset*CFrame.Angles(0,0,-(car.steer or 0)*1.15))
    for _,p in hero.rig:GetDescendants() do
     if p:IsA("BasePart") then p.LocalTransparencyModifier=firstPerson and (p.Name=="Head" or p:IsDescendantOf(hero.rig.Head) or p.Name:find("hat") or p.Name:find("Hat") or p.Name:find("brim") or p.Name:find("crown")) and 1 or 0 end
    end
+   -- Park at the end of a complete wipe, rather than freezing a blade mid-screen.
+   if wipersOn or wiperPhase>0 then
+    wiperPhase+=dt*1.2
+    if wiperPhase>=1 then wiperPhase=wipersOn and wiperPhase%1 or 0 end
+   end
+   local sweep=-.65+(1-math.cos(wiperPhase*math.pi*2))*.65
+   for i,wiper in ext.vehicle.wipers do wiper:PivotTo(ext.van:GetPivot()*wiperOffsets[i]*CFrame.Angles(0,0,sweep)) end
    mirrors.update(dt,firstPerson)
    local target=V(car.x,3.8,car.z); local angle=car.yaw+driveOrbit
    if firstPerson then
     local eye=(ext.van:GetPivot()*CFrame.new(-1.35,4.65,-4.1)).Position-origin
+    local motion=ctx.reducedMotion() and 0 or 1
+    cabinRoll+=((car.turnRate or 0)*math.abs(car.speed)*.00065-cabinRoll)*(1-math.exp(-dt*5))
+    cabinTilt+=(math.clamp(car.acceleration or 0,-50,32)*.0007-cabinTilt)*(1-math.exp(-dt*6))
+    local roadBob=math.sin((car.travel or 0)*1.3)*.018*math.min(1,math.abs(car.speed)/25)*motion
+    eye+=V(0,roadBob,0)
     view(eye,eye+V(-math.sin(angle)*10,-drivePitch*5,-math.cos(angle)*10),74,dt,false)
+    camera.CFrame*=CFrame.Angles(cabinTilt*motion,0,math.clamp(cabinRoll,-.035,.035)*motion)
    else
     local radius=driveZoom*math.cos(drivePitch)
     view(target+V(math.sin(angle)*radius,math.max(1.2,math.sin(drivePitch)*driveZoom),math.cos(angle)*radius),target,ctx.reducedMotion() and 65 or 65+math.abs(car.speed)*.08,dt,true)

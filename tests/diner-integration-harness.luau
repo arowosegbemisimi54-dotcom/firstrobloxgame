@@ -27,7 +27,8 @@ function transform:VectorToWorldSpace(v) return v end
 local function cf(position) return setmetatable({Position=type(position)=="table" and position or Vector.new(0,0,0)},transform) end
 function transform:Lerp(other) return other end
 transform.Rotation=cf()
-local CFrame={new=cf,Angles=cf,lookAt=cf,fromMatrix=cf}
+local CFrame={new=cf,lookAt=cf,fromMatrix=cf}
+function CFrame.Angles(x,y,z) local t=cf(); t.angles={x,y,z}; return t end
 local color={Lerp=function(self) return self end}
 local Color3={new=function() return color end,fromRGB=function() return color end}
 local UDim={new=function(scale,offset) return {Scale=scale,Offset=offset} end}
@@ -42,6 +43,8 @@ local Enum=setmetatable({},{__index=function(_,k) return setmetatable({},{__inde
 local nativeMath=math
 local math=table.clone(math)
 math.noise=function(x,y,z) return nativeMath.sin(x*7+y*3+z)*.3 end
+local warnings={}
+local function warn(message) table.insert(warnings,message) end
 local objects={}
 local methods={}
 local meta={}
@@ -138,7 +141,7 @@ function actionService:UnbindAction(name) actions[name]=nil end
 function actionService:SetTitle() end
 function actionService:SetPosition() end
 local inputService={InputBegan=signal(),InputEnded=signal(),InputChanged=signal(),MouseBehavior="Default",MouseIconEnabled=true}
-local services={ContextActionService=actionService,UserInputService=inputService,Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit",EscapeRules="escapeRules"} end}}
+local services={ContentProvider={PreloadAsync=function(_,items) for _,item in items do item.IsLoaded=true; item.TimeLength=42.866938 end end},ContextActionService=actionService,UserInputService=inputService,Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit",EscapeRules="escapeRules"} end}}
 local game={GetService=function(_,name) return services[name] end}
 local workspace=Instance.new("Workspace")
 workspace.CurrentCamera={CFrame=cf(),FieldOfView=65}
@@ -379,6 +382,21 @@ press("View",true); frames(3)
 local mirrorsVisible=0
 for _,obj in objects do if obj.ClassName=="ViewportFrame" and obj.Visible and obj.Parent and obj.Parent.Name=="Live rear-view mirror" then mirrorsVisible+=1 end end
 check(mirrorsVisible==2,"cabin view activates both rearward patrol displays")
+local cameraRotation=workspace.CurrentCamera.CFrame.right.angles
+check(cameraRotation[1]==0 and cameraRotation[3]==0,"reduced-motion mode suppresses cabin pitch and roll")
+press("Lights",true)
+local darkHeadlamps=0
+for _,obj in objects do if not obj.destroyed and obj.ClassName=="SpotLight" and obj.Parent and obj.Parent.Name=="Warm headlamp lens" and obj.Enabled==false then darkHeadlamps+=1 end end
+check(darkHeadlamps==2,"headlight control switches off both van beams")
+press("Lights",true)
+press("Wipers",true); frames(3)
+local movingWipers=0
+for _,obj in objects do if not obj.destroyed and obj.Name=="Working windshield wiper" and math.abs(obj:GetPivot().right.angles[3]+.65)>.1 then movingWipers+=1 end end
+check(movingWipers==2,"wiper control animates both blades")
+press("Wipers",false); press("Wipers",true); frames(20)
+local parkedWipers=0
+for _,obj in objects do if not obj.destroyed and obj.Name=="Working windshield wiper" and math.abs(obj:GetPivot().right.angles[3]+.65)<.00001 then parkedWipers+=1 end end
+check(parkedWipers==2,"switching wipers off mid-sweep returns both blades to their parked position")
 press("View",true)
 press("Forward",true); frames(240); press("Forward",false)
 local lost=false
@@ -390,4 +408,32 @@ for _,obj in objects do if obj.Name=="Live rear-view mirror" and not obj.destroy
 check(mirrorsClean,"chapter teardown destroys both rear-view scenes")
 check(finishes==2 and render.callback==nil and next(actions)==nil,"chapter teardown disconnects camera and every control binding once")
 check(lighting.ClockTime==17.7 and grade.Enabled==true and inputService.MouseBehavior=="Default","chapter teardown restores menu lighting and mouse behavior")
+-- Supplied narration must remain one continuous performance across camera cuts.
+Timeline.recording.assetId="123456"
+local testRadio=Instance.new("Part"); testRadio.Parent=workspace
+local recorded=modules.audio.create(workspace,testRadio,Timeline.dialogue)
+local report
+for _,obj in objects do if obj.Name=="Recorded Blox News report" and not obj.destroyed then report=obj end end
+report.IsLoaded=false
+recorded.update(3,0)
+check(not report.IsPlaying,"recording waits for loading without starting a substitute robot narrator")
+report.IsLoaded=true
+recorded.update(3,2)
+check(report.TimePosition==2,"late audio loading joins the current report position")
+check(report and report.IsPlaying and report.SoundId=="rbxassetid://123456","configured Roblox recording replaces the report narrator")
+report.TimePosition=7.1; recorded.update(4,0)
+check(report.plays==1 and report.IsPlaying,"camera cuts do not restart or pause the recorded report")
+report.TimePosition=8; recorded.update(5,1)
+check(math.abs(report.TimePosition-21.6)<.001,"recording catches up to the same scene clock after a long frame")
+recorded.update(7,0)
+check(not report.IsPlaying,"emergency static stops recorded narration")
+recorded.destroy(); check(report.destroyed,"recorded narration is destroyed with the scene")
+local originalPreload=services.ContentProvider.PreloadAsync
+services.ContentProvider.PreloadAsync=function() error("Audio permission denied") end
+local missing=modules.audio.create(workspace,testRadio,Timeline.dialogue)
+missing.update(3,2); missing.update(7,0); missing.destroy()
+check(#warnings==1,"an inaccessible recording warns without blocking scene progression or cleanup")
+services.ContentProvider.PreloadAsync=originalPreload
+Timeline.recording.assetId=""
+testRadio:Destroy()
 print(string.format("%d diner integration checks passed",checks))

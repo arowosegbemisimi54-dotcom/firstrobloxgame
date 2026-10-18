@@ -52,7 +52,15 @@ function Rules.drive(car,throttle,steer,brake,dt)
  dt=math.clamp(dt,0,.05)
  local acceleration=throttle*32-car.speed*(brake and 5 or (throttle==0 and 1.2 or .12))
  car.speed=math.clamp(car.speed+acceleration*dt,-22,78)
- car.yaw-=steer*math.clamp(car.speed/22,-1,1)*1.1*dt
+ -- A gradual rack and speed-sensitive steering keep high-speed corrections small.
+ local previousSpeed=car.previousSpeed or car.speed
+ car.steer=(car.steer or 0)+(math.clamp(steer,-1,1)-(car.steer or 0))*(1-math.exp(-dt*7))
+ car.wheelAngle=car.steer*.5/(1+math.abs(car.speed)/25)
+ car.turnRate=-car.speed*math.tan(car.wheelAngle)/7.8
+ car.yaw+=car.turnRate*dt
+ car.acceleration=(car.speed-previousSpeed)/math.max(dt,.001)
+ car.previousSpeed=car.speed
+ car.travel=(car.travel or 0)+math.abs(car.speed)*dt
  local x=car.x-math.sin(car.yaw)*car.speed*dt
  local z=car.z-math.cos(car.yaw)*car.speed*dt
  local collision=not Rules.drivable(x,z)
