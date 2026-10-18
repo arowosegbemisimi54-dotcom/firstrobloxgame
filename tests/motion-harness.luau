@@ -61,6 +61,7 @@ local accessoryWeld=object("Weld","AccessoryWeld"); accessoryWeld.Part0=accessor
 local rig={}
 function rig:GetDescendants() local reverse={}; for i=#descendants,1,-1 do table.insert(reverse,descendants[i]) end; return reverse end
 function rig:FindFirstChild(name) return name=="HumanoidRootPart" and root end
+function rig:FindFirstChildOfClass() return nil end
 function rig:PivotTo(cf) root.CFrame=cf end
 local person={rig=rig,joints={LeftHip={joint=hip,base=hip.C0},LeftKnee={joint=knee,base=knee.C0}}}
 Motion.bind(person)

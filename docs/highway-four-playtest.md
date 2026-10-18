@@ -1,5 +1,41 @@
 # Highway Four chapter playtest
 
+## R15 frozen-limb correction
+
+Stop the current Studio Play session before pulling and syncing this update,
+then start Play again. No animation upload, animation asset ID or manual rig
+editing is needed. Use **R15** in the experience's Avatar Settings; the older
+README instruction to select R6 has been corrected. Existing R6 accounts are
+still converted to R15 for the story copy.
+
+The scene solver disables the physics joints so it can place the articulated
+parts itself. Previously the default Humanoid neck/death behavior remained
+active: disabling Neck could kill the copy and remove all its Motor6Ds. The
+root still moved, but the anchored limbs retained a single pose. Scene copies
+now disable `RequiresNeck`, `BreakJointsOnDeath`, `EvaluateStateMachine` and
+`AutoRotate` before any joint is disabled. All diner actors and escape actors
+bind during preparation, before playback or audio-loading yields. Live player
+Humanoids retain their normal physics and death behavior.
+
+The regression uses a connected R15 skeleton, whole-model PivotTo, fitted boot
+and hat welds, and a simulated Humanoid neck/death update. The old code fails
+because it loses the joints. The corrected code retains the joints and moves
+both feet, lower legs and the free hand through sustained runs at 30/60/120 FPS.
+The numerical test does not replace the following Roblox engine check:
+
+1. After payment, walk for several strides, stop, then hold Shift to sprint.
+   Check alternating legs, bending knees, arm swing and boots following feet.
+2. Watch the four gang members run to the van, then both officers leave their
+   cars and approach. Their limbs must keep moving after the first few frames.
+3. At the warehouse, walk and sprint, collect a bag and carry it to the pallet.
+   The carrying arm should stabilize the bag while the legs continue moving.
+4. During Play, the story-copy Humanoids should retain their Motor6Ds and have
+   `RequiresNeck=false`, `BreakJointsOnDeath=false`, `EvaluateStateMachine=false`.
+   Those settings belong to the isolated story scene, not the live player rig.
+
+Roblox documents this behavior in [Humanoid.RequiresNeck](https://create.roblox.com/docs/reference/engine/classes/Humanoid#RequiresNeck)
+and [Humanoid.BreakJointsOnDeath](https://create.roblox.com/docs/reference/engine/classes/Humanoid#BreakJointsOnDeath).
+
 The radio opening now continues into the new chapter and has no skip controls,
 as requested in Part 2. Existing menus, wardrobe selection and menu traffic are
 unchanged. This remains the existing client-local story scene: party members

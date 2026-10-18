@@ -58,7 +58,9 @@ function Diner.create(profile)
 		local hand=rig:FindFirstChild("RightHand") or rig:FindFirstChild("Right Arm")
 		local props=hand and Art.held(rig,hand,role) or {}
 		props=props or {}
-		table.insert(actors,{rig=rig,base=base,joints=joints,role=role,index=index,face=face,props=props,r6=rig:FindFirstChild("Torso")~=nil})
+		local person={rig=rig,base=base,joints=joints,role=role,index=index,face=face,props=props,r6=rig:FindFirstChild("Torso")~=nil}
+		Motion.bind(person)
+		table.insert(actors,person)
 	end
 	local coffeeStream=Instance.new("Part"); coffeeStream.Name="Coffee pour stream"; coffeeStream.Size=Vector3.new(.035,.035,.2); coffeeStream.Color=Color3.fromRGB(79,44,24); coffeeStream.Anchored=true; coffeeStream.CanCollide=false; coffeeStream.CanTouch=false; coffeeStream.CanQuery=false; coffeeStream.Transparency=1; coffeeStream.Parent=model
 	local setJoint=Motion.joint

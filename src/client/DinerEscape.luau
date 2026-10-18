@@ -12,6 +12,9 @@ local Warehouse=require(script.Parent.WarehouseChapter)
 local Escape={}
 function Escape.prepare(ctx)
  local props=Props.build(ctx)
+ -- Bind before audio preloading can yield or the set enters Workspace.
+ for _,person in props.crew do Motion.bind(person) end
+ for _,person in props.officers do Motion.bind(person) end
  local audio=Audio.create(ctx.model,Rules.lines)
  local disposed=false
  return {props=props,audio=audio,destroy=function()

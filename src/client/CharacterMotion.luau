@@ -4,7 +4,19 @@ local Motion={}
 -- This avoids cached model offsets and Humanoid/Animator evaluation undoing a
 -- procedural pose between the render callback and the physics step.
 function Motion.bind(person)
+ if person.poseLinks then return end
  local root=assert(person.rig:FindFirstChild("HumanoidRootPart"),"Scene rig needs a root")
+ -- These are local cinematic copies, not live player Humanoids. Disconnecting
+ -- Neck with the default RequiresNeck/BreakJointsOnDeath settings kills the
+ -- copy and destroys every Motor6D on the next engine update. Protect the
+ -- skeleton BEFORE anchoring parts or disabling any joint.
+ local humanoid=person.rig:FindFirstChildOfClass("Humanoid")
+ if humanoid then
+  humanoid.RequiresNeck=false
+  humanoid.BreakJointsOnDeath=false
+  humanoid.EvaluateStateMachine=false
+  humanoid.AutoRotate=false
+ end
  local edges={}
  for _,item in person.rig:GetDescendants() do
   if item:IsA("BasePart") then item.Anchored=true

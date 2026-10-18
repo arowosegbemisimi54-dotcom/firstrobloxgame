@@ -9,12 +9,19 @@ An original cinematic Roblox crime-adventure project by **MHIDE**. This build im
    ```powershell
    & "$env:USERPROFILE\Downloads\rojo-7.7.1-windows-x86_64\rojo.exe" serve
    ```
-3. In Studio, set **Avatar Settings → Avatar Type** to **R6** and save it. Open the saved game and connect **Plugins → Rojo** to `localhost:34872`. Review the initial sync. The project maps only `GameServer`, `GameShared`, and `GameClient`; it does not map your Workspace, terrain, or saved lighting.
+3. In Studio, set **Avatar Settings → Avatar Type** to **R15** and save it. Open the saved game and connect **Plugins → Rojo** to `localhost:34872`. Review the initial sync. The project maps only `GameServer`, `GameShared`, and `GameClient`; it does not map your Workspace, terrain, or saved lighting.
 4. Click **Play**, not Run. Local scripts and the interface need a player. Stop and restart Play after script changes to avoid duplicate menus from live editing.
-5. Choose a character name, Boy/Girl, and personality. Then the black opening shows **Story Mode**, followed by **Online**, with clicks. Choose Story Mode for the sunset loading screen, then the existing five-second counter-clockwise desert camera orbit. Select **Play → Begin Story** for the diner opening; use **Next shot** or **Skip opening** at any time.
+5. Choose a character name, Boy/Girl, and personality. Then the black opening shows **Story Mode**, followed by **Online**, with clicks. Choose Story Mode for the sunset loading screen, then the existing five-second counter-clockwise desert camera orbit. Select **Play → Begin Story** for the diner opening. Let the radio report finish, leave payment with E, and walk outside to continue the chapter.
 6. Test before publishing. GitHub pulls and Rojo syncs do not publish a live Roblox game.
 
 Keep PowerShell open during sync. Edit synced scripts in the repository, not inside Studio; Rojo can overwrite Studio edits to mapped objects. The root configuration uses UTF-8 without a BOM.
+
+**After an animation update, stop Play, pull and sync, then start a new Play
+session.** Roblox caches required modules, and an existing scene whose skeleton
+has already lost its joints cannot be repaired by hot-syncing the scripts.
+Walking/running uses the project's own R15 pose code; no animation upload or
+animation asset ID is required. The current story flow and animation playtest
+are documented in [Highway Four playtest](docs/highway-four-playtest.md).
 
 ## Included
 
@@ -34,7 +41,7 @@ Keep PowerShell open during sync. Edit synced scripts in the repository, not ins
 - Costume, Top, Bottom, Hat, Shoes, and Critter tabs. Starter garments and hat/no-hat are selectable. The bird costume has been removed. Locked costumes are hidden; the dog remains a locked story reward preview. Personality is retained in character data but not shown in the wardrobe.
 - Quick setup/page slide transitions with a soft movement sound; validation messages replace permanent setup side notes.
 - Sunset loading screen: 0–100% reflects completed scene-preparation jobs, with a rotating tumbleweed widget.
-- Local R6 diner opening: the player and two other customers, waitress, chef, meal props, eating/working motion, 2.5-second camera glide, and two closer shots. Next-shot and whole-opening skip controls restore the desert menu and clean up the diner.
+- Local R15 diner opening with articulated eating/working gestures and a radio report. It continues into the interactive diner exit, getaway, pursuit and warehouse chapter; see the current playtest above.
 - Mouse, touch, and selectable gamepad buttons; adaptive portrait layout.
 
 ## Deliberately unfinished
@@ -43,7 +50,7 @@ Keep PowerShell open during sync. Edit synced scripts in the repository, not ins
 
 When actual destinations exist, set `OnlinePlaceId` and `StoryPlaceId` in `src/shared/Config.luau` to published **place IDs** within this experience. Keep them at `0` until then. The server uses a reserved server for a story party. Teleports must be tested in the published Roblox client, not Studio. Do not point a destination back to this menu place, which would loop the player back to the opening.
 
-Names are checked through Roblox TextService. A filtering outage in a published game blocks creation and offers retry. If filtering is unavailable in Studio, a safe **Studio Explorer** placeholder lets the rest of the flow be tested; the UI explains this. No unfiltered name is published. R6 is the intended character rig; final fit, idle animation, clothing appearance, and item-card framing need Studio validation.
+Names are checked through Roblox TextService. A filtering outage in a published game blocks creation and offers retry. If filtering is unavailable in Studio, a safe **Studio Explorer** placeholder lets the rest of the flow be tested; the UI explains this. No unfiltered name is published. R15 is the intended character rig; final fit, idle animation, clothing appearance, and item-card framing need Studio validation.
 
 The character name **Mhide** is reserved server-side, ignoring letter case and whitespace. For a user-owned experience, the owner is permitted automatically. For a group-owned experience (or a different developer account), set the numeric `DeveloperUserId` in `src/shared/Config.luau`; leaving it at zero on a group-owned experience denies the reserved name to everyone.
 
@@ -55,7 +62,7 @@ The character name **Mhide** is reserved server-side, ignoring letter case and w
 - `src/server/PartyService.server.luau`: authoritative party management and destination travel.
 - `src/client/StoryLoading.luau`: sunset loading and preparation progress.
 - `src/client/PageMotion.luau`: cancelable page transitions.
-- `src/client/DinerOpening.luau`: local diner, R6 cast, motion, camera shots, and cleanup.
+- `src/client/DinerOpening.luau`: local diner, R15 cast, motion, camera shots, and cleanup.
 - `src/shared/DinerTimeline.luau`: camera shot durations and skip rules.
 - `src/client/CharacterFlow.luau`: name, character, and personality steps.
 - `src/client/Wardrobe.luau`: visual wardrobe, rotation, smoke puff, and item cards.
@@ -89,6 +96,6 @@ Required Studio acceptance checks:
 - Check the station and mountain silhouettes during the orbit; verify the stacked credits and unnumbered text-only links at desktop and mobile sizes.
 - Open each menu link: only its page should appear, with the same scenery behind it. Back must restore the home menu.
 - Open the profile: inspect both starter outfit variants, hat/no-hat, accurate item cards, 360° drag and arrow rotation, brief smoke puff, half-second cooldown, and empty costume inventory and locked-dog feedback. Reset the character and confirm the session outfit is reapplied.
-- Set R6, verify starter clothing and preview rotation, and start the diner. Inspect the player plus two customers, two workers, seated leg poses, eating/working gestures, meal framing, and camera movement. Try next-shot, whole-opening skip, repeated replays, and natural completion; camera and menu must recover each time.
+- Set R15, verify starter clothing and preview rotation, and start the diner. Inspect seated leg poses and eating/working gestures, then complete payment and walk/sprint through the exit. Both legs must alternate, knees must bend and the free arm must swing. Watch all four gang members and both officers run; repeat in the warehouse. Use the current Highway Four checklist for the complete chapter.
 - Check progress reaches 100%, slides do not drift after resizing, setup help text is absent, and only the permitted account can create Mhide (including mixed-case/spaced attempts).
 - Check performance on an actual lower-powered device. Rendering quality and sound behavior have not been verified in this cloud workspace, which cannot run Roblox Studio.

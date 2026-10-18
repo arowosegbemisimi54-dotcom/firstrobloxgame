@@ -131,7 +131,7 @@ local function rig(kind)
  for _,name in names do
   local p=Instance.new("Part"); p.Name=name; p.CFrame=cf(); p.Size=Vector.new(1,2,1); p.Color=color; p.Parent=model
  end
- local humanoid=Instance.new("Humanoid"); humanoid.Parent=model
+ local humanoid=Instance.new("Humanoid"); humanoid.RequiresNeck=true; humanoid.BreakJointsOnDeath=true; humanoid.EvaluateStateMachine=true; humanoid.Health=100; humanoid.Parent=model
  for _,name in {"Neck","Waist","LeftShoulder","RightShoulder","LeftElbow","RightElbow","LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle"} do
   local joint=Instance.new("Motor6D"); joint.Name=name; joint.C0=cf(); joint.Parent=model
  end
@@ -249,6 +249,16 @@ for _,obj in objects do
  if obj.ClassName=="Model" and obj.Parent and obj.Parent.Name=="ShirtsAndSkins_DinerOpening" and obj:FindFirstChildOfClass("Humanoid") then table.insert(cast,obj) end
 end
 check(#cast==7,"diner has player, shared-table pair, reader, bar customer and two workers")
+local protected=0
+for _,obj in cast[1].Parent:GetDescendants() do
+ if obj:IsA("Humanoid") then
+  assert(obj.RequiresNeck==false and obj.BreakJointsOnDeath==false and obj.EvaluateStateMachine==false,"scene Humanoid can destroy its animation joints before playback")
+  protected+=1
+ end
+end
+check(protected==13,"player, diner cast, gang and officers protect their skeletons before playback begins")
+local liveHuman=player.Character:FindFirstChildOfClass("Humanoid")
+check(liveHuman.RequiresNeck and liveHuman.BreakJointsOnDeath and liveHuman.EvaluateStateMachine,"scene animation setup leaves the live player's Humanoid physics and death behavior intact")
 local faceCount=0
 local mouths={}
 local eyes={}

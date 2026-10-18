@@ -9,6 +9,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 suites = {
+    'scene-motion': {'-- INSERT_MOTION':'src/client/CharacterMotion.luau'},
     'warehouse': {'-- INSERT_WAREHOUSE_RULES':'src/shared/WarehouseRules.luau'},
     'escape': {'-- INSERT_ESCAPE_RULES':'src/shared/EscapeRules.luau'},
     'motion': {'-- INSERT_MOTION':'src/client/CharacterMotion.luau', '-- INSERT_LIVE_MOTION':'src/client/LiveCharacterMotion.luau'},
