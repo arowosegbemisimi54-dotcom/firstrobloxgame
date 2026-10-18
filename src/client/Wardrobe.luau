@@ -6,6 +6,7 @@ local shared=game:GetService("ReplicatedStorage"):WaitForChild("GameShared")
 local Catalog=require(shared.CharacterCatalog)
 local Outfit=require(shared.WesternOutfit)
 local Motion=require(script.Parent.PageMotion)
+local CharacterMotion=require(script.Parent.CharacterMotion)
 local Wardrobe={}
 
 function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
@@ -27,7 +28,7 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 	local selectedTab="Top"
 	local angle=0
 	local time=0
-	local idleJoints={}
+	local idleActor
 	local pending=false
 	local lastSelection=-math.huge
 	local loading=false
@@ -65,10 +66,11 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 		if not template or not profile then return end
 		preview=template:Clone(); freeze(preview); preview.Parent=world
 		Outfit.apply(preview,profile)
-		idleJoints={}
+		idleActor={rig=preview,joints={}}
 		for _,joint in preview:GetDescendants() do
-			if joint:IsA("Motor6D") and (joint.Name=="LeftShoulder" or joint.Name=="RightShoulder" or joint.Name=="Left Shoulder" or joint.Name=="Right Shoulder") then table.insert(idleJoints,{joint=joint,base=joint.C0}) end
+			if joint:IsA("Motor6D") then idleActor.joints[joint.Name]={joint=joint,base=joint.C0} end
 		end
+		CharacterMotion.bind(idleActor)
 		preview:PivotTo(CFrame.Angles(0,angle,0))
 	end
 	local function equip(slot,id)
@@ -145,11 +147,9 @@ function Wardrobe.mount(parent,ui,remote,onBack,onProfile,isReducedMotion)
 	connect(RunService.RenderStepped,function(dt)
 		if not page.Visible or not preview then return end
 		time+=dt
-		local bob=isReducedMotion() and 0 or math.sin(time*1.7)*.035
-		preview:PivotTo(CFrame.new(0,bob,0)*CFrame.Angles(0,angle,0))
-		for _,data in idleJoints do
-			data.joint.C0=data.base*CFrame.Angles(0,0,isReducedMotion() and 0 or math.sin(time*1.7)*.025)
-		end
+		preview:PivotTo(CFrame.Angles(0,angle,0))
+		CharacterMotion.idle(idleActor,time,isReducedMotion())
+		CharacterMotion.flush(idleActor)
 	end)
 	local function resize()
 		local narrow=parent.AbsoluteSize.X<parent.AbsoluteSize.Y

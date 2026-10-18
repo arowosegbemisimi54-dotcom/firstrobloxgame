@@ -168,24 +168,25 @@ function Diner.create(profile)
 				end
 				for _,person in actors do
 					local reacting=timeline.shot>=3
+					local reaction=Motion.action(person,elapsed,person.role,reacting)
 					if person.face then person.face(elapsed,not reacting and person.role=="eat",reacting) end
 					local phase=elapsed*1.6+person.index
 					local breath=math.sin(phase)*.025
 					if person.role=="eat" or person.role=="reader" or person.role=="bar" then
 						setJoint(person,"LeftHip",CFrame.Angles(math.pi/2,0,0)); setJoint(person,"RightHip",CFrame.Angles(math.pi/2,0,0))
 						setJoint(person,"LeftKnee",CFrame.Angles(-math.pi/2,0,0)); setJoint(person,"RightKnee",CFrame.Angles(-math.pi/2,0,0))
-						local bite=reacting and 0 or (math.sin(phase)+1)/2
+						local bite=(1-reaction)*(math.sin(phase)+1)/2
 						setJoint(person,"RightShoulder",CFrame.Angles(reacting and .45 or (person.r6 and (1.0+bite*.65) or (.5+bite*.55)),0,-.1)); setJoint(person,"RightElbow",CFrame.Angles(.4+bite*1.2,0,0))
-						setJoint(person,"Neck",CFrame.Angles(reacting and -.02 or -bite*.12,reacting and (person.index==3 and -.85 or .85) or math.sin(phase*.3)*.12,0))
-						person.rig:PivotTo(person.base*CFrame.new(0,breath,0)*(person.role=="bar" and CFrame.Angles(0,reacting and 1.4 or 0,0) or CFrame.new()))
+						setJoint(person,"Neck",CFrame.Angles(-.02*reaction-bite*.15,reaction*(person.index==3 and -.85 or .85)+(1-reaction)*math.sin(phase*.3)*.12,0))
+						person.rig:PivotTo(person.base*CFrame.new(0,breath,0)*(person.role=="bar" and CFrame.Angles(0,reaction*1.4,0) or CFrame.new()))
 						if person.props.pageHinge then
 							local turn=reacting and 0 or math.max(0,math.sin(elapsed*.8))*math.pi*.8
 							person.props.pageHinge.C0=CFrame.new(0,person.props.grip+.25,-.53)*CFrame.Angles(0,turn,0)*CFrame.new(.4,0,0)
 						end
 					elseif person.role=="waitress" then
 						person.rig:PivotTo(person.base*CFrame.new(0,breath,0))
-						setJoint(person,"RightShoulder",CFrame.Angles(1.1,0,-.22)); setJoint(person,"LeftShoulder",CFrame.Angles(.2,0,0))
-						setJoint(person,"Neck",CFrame.Angles(reacting and .02 or .12,reacting and -.65 or 0,0))
+						setJoint(person,"RightShoulder",CFrame.Angles(1.1,0,-.22)); setJoint(person,"LeftShoulder",CFrame.Angles(.2,0,.08)); setJoint(person,"RightElbow",CFrame.Angles(.32,0,0)); setJoint(person,"RightWrist",CFrame.Angles(.12,0,0))
+						setJoint(person,"Neck",CFrame.Angles(.12-.10*reaction,-.65*reaction,0))
 						coffeeStream.Transparency=reacting and 1 or .18
 						if person.props.spout then
 							local start=person.props.spout.CFrame.Position; local target=origin+Vector3.new(17.6,3.98,5.4)
@@ -193,8 +194,8 @@ function Diner.create(profile)
 						end
 					else
 						person.rig:PivotTo(person.base*CFrame.new(math.sin(elapsed*.5)*.4,breath,0))
-						setJoint(person,"RightShoulder",CFrame.Angles(.8,math.sin(phase*2)*.2,0)); setJoint(person,"RightElbow",CFrame.Angles(.7+math.sin(phase*2)*.2,0,0))
-						setJoint(person,"LeftShoulder",CFrame.Angles(.85+math.sin(phase*2)*.12,0,0)); setJoint(person,"Neck",CFrame.Angles(-.18,math.sin(phase)*.1,0))
+						setJoint(person,"RightShoulder",CFrame.Angles(.8+math.sin(phase*2-.3)*.16,math.sin(phase*2)*.25,-.06)); setJoint(person,"RightElbow",CFrame.Angles(.7+math.sin(phase*2)*.34,0,0))
+						setJoint(person,"LeftShoulder",CFrame.Angles(.85+math.sin(phase*2)*.22,0,.06)); setJoint(person,"Neck",CFrame.Angles(-.18,math.sin(phase)*.1,0))
 						if person.props.pan then
 							local toss=math.max(0,math.sin(elapsed*2.4))
 							person.props.patty.CFrame=person.props.pan.CFrame*CFrame.new(.16+toss*.6,0,0)*CFrame.Angles(0,0,toss*math.pi)

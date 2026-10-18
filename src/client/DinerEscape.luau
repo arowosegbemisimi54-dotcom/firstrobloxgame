@@ -107,6 +107,8 @@ function Escape.start(ctx)
   local index=person.index
   local seat=index==1 and CFrame.new(1.4,3.1,-3.45) or CFrame.new(index%2==0 and -1.8 or 1.8,2.9,-.5+(index-2)*1.7)*CFrame.Angles(0,index%2==0 and -math.pi/2 or math.pi/2,0)
   person.rig:PivotTo(ext.van:GetPivot()*seat)
+  Motion.joint(person,"Waist",CFrame.Angles(-.05,math.sin(elapsed*.7+index)*.06,0))
+  Motion.joint(person,"Neck",CFrame.Angles(.03,math.sin(elapsed*.55+index)*.18,0))
   for _,side in {"Left","Right"} do
    Motion.joint(person,side.."Hip",CFrame.Angles(1.35,0,0)); Motion.joint(person,side.."Knee",CFrame.Angles(-1.35,0,0))
    Motion.joint(person,side.."Shoulder",CFrame.Angles(.15,0,0)); Motion.joint(person,side.."Elbow",CFrame.Angles(.3,0,0))
@@ -122,6 +124,7 @@ function Escape.start(ctx)
  local function seatHero()
   local seat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.8)
   hero.rig:PivotTo(seat)
+  Motion.joint(hero,"Waist",CFrame.Angles(-.07,0,0)); Motion.joint(hero,"Neck",CFrame.Angles(.03,0,0))
   local steering=state.phase=="drive" and (car.steer or 0) or 0
   for _,side in {"Left","Right"} do
    local sign=side=="Left" and -1 or 1
@@ -285,7 +288,7 @@ function Escape.start(ctx)
    local heroEntry=ext.van:GetPivot()*CFrame.new(-3.8,3.1,-3.45)
    local heroSeat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.45)
    hero.rig:PivotTo(heroEntry:Lerp(heroSeat,math.clamp(u*2,0,1)))
-   for _,side in {"Left","Right"} do Motion.joint(hero,side.."Hip",CFrame.Angles(u*1.35,0,0)); Motion.joint(hero,side.."Knee",CFrame.Angles(-u*1.35,0,0)) end
+   Motion.board(hero,math.clamp(u*2,0,1),true)
    doors(-1.2*(1-u),-1.1*(1-u),1.6*(1-u))
    view(V(48,6.5,-46),V(57,3.8,-53),57,dt,false)
    for i,person in props.crew do
@@ -295,8 +298,7 @@ function Escape.start(ctx)
      local outside=i==1 and CFrame.new(3.8,3.1,-3.45) or CFrame.new((i-3)*.7,2.9,7.1)
      local inside=i==1 and CFrame.new(1.4,3.1,-3.45) or CFrame.new(i%2==0 and -1.8 or 1.8,2.9,-.5+(i-2)*1.7)
      person.rig:PivotTo(ext.van:GetPivot()*outside:Lerp(inside,progress))
-     Motion.joint(person,"Waist",CFrame.Angles(-.32,0,0))
-     Motion.joint(person,"LeftKnee",CFrame.Angles(-.8*math.sin(progress*math.pi),0,0))
+     Motion.board(person,progress,false)
     else seatedCrew(person) end
    end
   elseif name=="warning" then
@@ -369,7 +371,7 @@ function Escape.start(ctx)
    camera.CFrame=initialCamera:Lerp(cf,math.clamp(state.time/1.2,0,1)); camera.FieldOfView=58
   elseif phase=="payment" then
    local u=state.time/Rules.paymentDuration
-   pose(hero,heroPos,math.pi,0,true); ctx.setJoint(hero,"RightShoulder",CFrame.Angles(.4+math.sin(u*math.pi)*1.1,0,-.2))
+   pose(hero,heroPos,math.pi,0,true); Motion.joint(hero,"Waist",CFrame.Angles(-.05-.18*math.sin(u*math.pi),0,0)); ctx.setJoint(hero,"RightShoulder",CFrame.Angles(.4+math.sin(u*math.pi)*1.1,0,-.2))
    props.payment.Transparency=0; for _,g in props.payment:GetChildren() do if g:IsA("SurfaceGui") then g.Enabled=true end end
    props.payment.CFrame=CFrame.new(origin+V(-31.5,3.8,-10):Lerp(V(-33.9,3.055,-6.4),math.clamp(u/.8,0,1)))
    view(V(-28,6,-5),V(-32,3,-7),48,dt,false)

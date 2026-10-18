@@ -51,26 +51,92 @@ function Motion.sample(distance,speed,seated,style,time)
  local phase=distance*math.pi/3.4
  local moving=math.clamp(speed/9,0,1)
  local running=math.clamp((speed-9)/9,0,1)
- local amplitude=(.48+running*.32)*moving
- local left=math.sin(phase); local right=-left
+ local amplitude=(.52+running*.56)*moving
+ -- Briefly hold the contact extremes; recover quickly through the passing pose.
+ local wave=math.sin(phase)
+ local left=wave>=0 and wave^.82 or -(-wave)^.82; local right=-left
+ local recoverLeft=math.max(0,-math.sin(phase-.25))
+ local recoverRight=math.max(0,math.sin(phase-.25))
  local aim=style=="officer"
  local carry=style=="crew"
  return {
   LeftHip=seated and 1.35 or left*amplitude,
   RightHip=seated and 1.35 or right*amplitude,
-  LeftKnee=seated and -1.35 or -math.max(0,-left)*(.8+running*.65)*moving,
-  RightKnee=seated and -1.35 or -math.max(0,-right)*(.8+running*.65)*moving,
+  LeftKnee=seated and -1.35 or -recoverLeft*(.85+running*.85)*moving,
+  RightKnee=seated and -1.35 or -recoverRight*(.85+running*.85)*moving,
   LeftAnkle=seated and 0 or -left*amplitude*.3,
   RightAnkle=seated and 0 or -right*amplitude*.3,
-  LeftShoulder=seated and 1.0 or (aim and 1.1 or (carry and .1 or -left*amplitude*.8)),
-  RightShoulder=seated and 1.0 or (aim and 1.3 or -right*amplitude*.8),
-  LeftElbow=seated and .55 or (aim and .9 or (carry and .25 or .35+running*.7)),
-  RightElbow=seated and .55 or (aim and .35 or .35+running*.7),
-  lean=seated and -.05 or -.08-running*.12,
-  twist=math.sin(phase)*moving*.07,
-  bob=seated and 0 or math.abs(math.cos(phase))*moving*(.045+running*.055),
+  LeftShoulder=seated and 1.0 or (aim and 1.1 or (carry and .1 or -left*amplitude*.95)),
+  RightShoulder=seated and 1.0 or (aim and 1.3 or -right*amplitude*.95),
+  LeftElbow=seated and .55 or (aim and .9 or (carry and .25 or .35+running*.85)),
+  RightElbow=seated and .55 or (aim and .35 or .35+running*.85),
+  lean=seated and -.05 or -.04-moving*.08-running*.25,
+  twist=math.sin(phase-.15)*moving*(.09+running*.06),
+  bob=seated and 0 or (math.abs(math.cos(phase))*2-1)*moving*(.035+running*.045),
+  hipSpread=seated and 0 or moving*(.035+running*.045),
+  shoulderSpread=seated and 0 or (aim and .03 or .07+moving*.08),
+  roll=seated and 0 or math.sin(phase)*moving*.045,
+  wrist=(seated or aim or carry) and 0 or math.sin(phase-.3)*moving*.10,
   glance=math.sin(time*.7)*((carry or aim) and .25 or .06),
  }
+end
+-- Shared full-body rotations for scene rigs and live R15 avatars.
+function Motion.rotations(pose)
+ local result={}
+ for _,name in {"LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle","LeftShoulder","RightShoulder","LeftElbow","RightElbow"} do
+  local sign=name:find("Left") and -1 or 1
+  local spread=name:find("Hip") and pose.hipSpread or (name:find("Shoulder") and pose.shoulderSpread or 0)
+  result[name]=CFrame.Angles(pose[name],0,sign*(spread or 0))
+ end
+ result.Waist=CFrame.Angles(pose.lean,pose.twist,pose.roll or 0)
+ result.Neck=CFrame.Angles(.03-pose.lean*.22,pose.glance-pose.twist*.4,-(pose.roll or 0)*.4)
+ result.LeftWrist=CFrame.Angles(pose.wrist or 0,0,0)
+ result.RightWrist=CFrame.Angles(-(pose.wrist or 0),0,0)
+ return result
+end
+function Motion.apply(person,pose)
+ for name,rotation in Motion.rotations(pose) do Motion.joint(person,name,rotation) end
+end
+function Motion.idle(person,time,reduced)
+ local pose=Motion.sample(0,0,false,"idle",time)
+ local breathe=reduced and 0 or math.sin(time*1.7)
+ pose.lean=-.025+breathe*.015; pose.twist=breathe*.025
+ pose.LeftShoulder=.07+breathe*.025; pose.RightShoulder=.04-breathe*.025
+ pose.LeftElbow=.12; pose.RightElbow=.16
+ pose.glance=reduced and 0 or math.sin(time*.45)*.12
+ Motion.apply(person,pose)
+end
+function Motion.action(person,time,role,reacting)
+ if reacting and not person.reactionStart then person.reactionStart=time end
+ if not reacting then person.reactionStart=nil end
+ local since=person.reactionStart and time-person.reactionStart or 0
+ local reaction=reacting and math.clamp(since/.4,0,1) or 0
+ local recoil=reacting and math.sin(since*11)*math.exp(-since*5) or 0
+ local rhythm=math.sin(time*1.6+(person.index or 0))
+ local working=role=="chef" or role=="waitress"
+ local lean=working and -.12 or -.06
+ if role=="chef" and not reacting then lean-=math.max(0,math.sin(time*2.4-.4))*.12 end
+ Motion.joint(person,"Waist",CFrame.Angles(lean+reaction*.13+recoil*.10,rhythm*.035-reaction*.10,rhythm*.025))
+ if working then
+  Motion.joint(person,"LeftHip",CFrame.Angles(.04,0,-.04)); Motion.joint(person,"RightHip",CFrame.Angles(-.04,0,.04))
+  Motion.joint(person,"LeftKnee",CFrame.Angles(-.08,0,0)); Motion.joint(person,"RightKnee",CFrame.Angles(-.08,0,0))
+ end
+ return reaction
+end
+function Motion.board(person,progress,driver)
+ local u=math.clamp(progress,0,1)
+ local lift=math.sin(u*math.pi)
+ local settle=u*u*(3-2*u)
+ Motion.joint(person,"Waist",CFrame.Angles(-.05-.38*lift,0,-.06*lift))
+ Motion.joint(person,"Neck",CFrame.Angles(.10*lift,0,0))
+ for _,side in {"Left","Right"} do
+  local lead=side=="Left" and 1 or .45
+  Motion.joint(person,side.."Hip",CFrame.Angles(1.35*settle+.45*lift*lead,0,0))
+  Motion.joint(person,side.."Knee",CFrame.Angles(-1.35*settle-.65*lift*lead,0,0))
+  Motion.joint(person,side.."Ankle",CFrame.Angles(-.1*lift,0,0))
+  Motion.joint(person,side.."Shoulder",CFrame.Angles((driver and 1 or .15)*settle+.65*lift,0,side=="Left" and -.08*lift or .08*lift))
+  Motion.joint(person,side.."Elbow",CFrame.Angles(.3+.3*lift,0,0))
+ end
 end
 function Motion.pose(person,origin,pos,yaw,dt,seated,time)
  local previous=person.motionPosition
@@ -93,9 +159,7 @@ function Motion.pose(person,origin,pos,yaw,dt,seated,time)
  end
  person.motionYaw=yaw
  local pose=Motion.sample(person.distance,person.motionSpeed,seated,person.style,time)
- for _,joint in {"LeftHip","RightHip","LeftKnee","RightKnee","LeftAnkle","RightAnkle","LeftShoulder","RightShoulder","LeftElbow","RightElbow"} do Motion.joint(person,joint,CFrame.Angles(pose[joint],0,0)) end
- Motion.joint(person,"Waist",CFrame.Angles(pose.lean,pose.twist,0))
- Motion.joint(person,"Neck",CFrame.Angles(.03,pose.glance,0))
+ Motion.apply(person,pose)
  person.rig:PivotTo(CFrame.new(origin+pos+Vector3.new(0,pose.bob,0))*CFrame.Angles(0,yaw,0))
  if person.face then person.face(time,false,true,person.style=="officer" and "focused" or "urgent") end
 end

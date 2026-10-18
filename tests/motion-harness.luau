@@ -82,4 +82,36 @@ for _=1,30 do
  Motion.pose(person,Vector3.new(0,0,0),Vector3.new(frame*.2,3,-1.2),0,1/60,false,frame/60); Motion.flush(person)
 end
 check(math.abs(root.CFrame.r[3]+1)<.00001,"moving characters face their actual travel direction instead of sliding sideways")
+local walking=Motion.sample(1.7,9,false,'player',0)
+local sprinting=Motion.sample(1.7,18,false,'player',0)
+check(sprinting.LeftHip>walking.LeftHip*1.8 and sprinting.lean<walking.lean-.2,'sprint has a wider stride and stronger torso anticipation than walking')
+local enum={HumanoidStateType={Running='running',RunningNoPhysics='runningNoPhysics',Landed='landed'},Material={Air='air'},AnimationPriority={Action={Value=3}}}
+local Enum=enum
+local script={Parent={CharacterMotion='motion'}}
+local function require(_) return Motion end
+local Live=(function()
+-- INSERT_LIVE_MOTION
+end)()
+local liveJoint={Name='LeftHip',Parent=true,Transform=CFrame.Angles(.2,0,0),IsA=function(_,c) return c=='Motor6D' end}
+local armJoint={Name='LeftShoulder',Parent=true,Transform=CFrame.Angles(.6,0,0),IsA=liveJoint.IsA}
+local liveRoot={Parent=true,Anchored=false,Position=Vector3.new(0,3,0),AssemblyLinearVelocity=Vector3.new(0,0,-18)}
+local state='running'; local tracks={}; local tool=false; local disconnected=false
+local animator={GetPlayingAnimationTracks=function() return tracks end}
+local humanoid={Health=100,FloorMaterial='ground',GetState=function() return state end,FindFirstChildOfClass=function() return animator end}
+local liveRig={FindFirstChild=function(_,name) return name=='HumanoidRootPart' and liveRoot or name=='UpperTorso' and {} end,
+ FindFirstChildOfClass=function(_,name) return name=='Humanoid' and humanoid or name=='Tool' and tool end,
+ GetDescendants=function() return {liveJoint,armJoint} end,
+ DescendantAdded={Connect=function() return {Disconnect=function() disconnected=true end} end}}
+local controller=assert(Live.attach(liveRig))
+local original,armOriginal=liveJoint.Transform,armJoint.Transform
+liveRoot.Position=Vector3.new(0,3,-1.7); controller.update(.1)
+check(liveJoint.Transform~=original and not liveRoot.Anchored,'live R15 gait renders without taking ownership of physics')
+controller.reset(); check(liveJoint.Transform==original,'live pose layer restores the Animator transform before the next frame')
+state='jumping'; controller.update(.1); check(liveJoint.Transform==original,'airborne animation is not overwritten')
+state='running'; tracks={{IsPlaying=true,Priority={Value=3}}}; controller.update(.1)
+check(liveJoint.Transform==original,'higher priority action tracks retain control of the rig')
+tracks={}; tool=true; controller.update(.1)
+check(armJoint.Transform==armOriginal and liveJoint.Transform~=original,'equipped tools retain their arm pose while legs keep walking')
+controller.destroy(); controller.destroy()
+check(disconnected and liveJoint.Transform==original,'live rig teardown restores all transforms and disconnects exactly once')
 print(n..' motion checks passed')
