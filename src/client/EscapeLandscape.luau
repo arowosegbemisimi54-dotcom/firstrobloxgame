@@ -1,6 +1,15 @@
 -- Bounded, deterministic roadside detail and an original timber stash house.
 local WarehouseSet=require(script.Parent.WarehouseSet)
 local Landscape={}
+-- Radius bounds include every rotated corner, not just a dune's center.
+-- Keep the diner, arrival lanes, road and depot clear of generated landforms.
+function Landscape.terrainAllowed(center,size)
+ local r=size.Magnitude*.5+3
+ for _,area in {{-225,140,-98,235},{-270,1250,112,166},{860,985,150,235}} do
+  if center.X+r>area[1] and center.X-r<area[2] and center.Z+r>area[3] and center.Z-r<area[4] then return false end
+ end
+ return true
+end
 function Landscape.build(part,origin,parent)
  local V,C=Vector3.new,Color3.fromRGB
  local model=Instance.new("Model"); model.Name="Highway Four landscape and timber stash house"; model.Parent=parent
@@ -12,16 +21,19 @@ function Landscape.build(part,origin,parent)
   object.CFrame=CFrame.lookAt(origin+(a+b)/2,origin+b); return object
  end
  local sand=C(155,127,86); local timber=C(110,82,51); local pale=C(157,128,86)
- -- Broad dunes and weathered rock crowns, kept clear of the driveable road.
+ local function terrain(name,size,pos,color,material,rotation)
+  if not Landscape.terrainAllowed(pos,size) then return end
+  local object=p(name,size,pos,color,material,Enum.PartType.Ball)
+  object.CFrame*=rotation
+ end
+ -- Distant dunes only: the entire parking court and getaway route stay flat.
  for i=1,42 do
   local x=-230+i*35; local side=i%2==0 and -1 or 1; local z=140+side*(125+i%4*32)
   local h=12+i%6*6
-  local dune=p("Layered desert dune",V(95+i%4*18,h,85),V(x,h*.08-4,z),i%2==0 and sand or C(174,143,99),Enum.Material.Sand,Enum.PartType.Ball)
-  dune.CFrame*=CFrame.Angles(.02,math.sin(i)*.7,.06)
+  terrain("Layered desert dune",V(95+i%4*18,h,85),V(x,h*.08-4,z),i%2==0 and sand or C(174,143,99),Enum.Material.Sand,CFrame.Angles(.02,math.sin(i)*.7,.06))
   if i%3==0 then
    for j=1,3 do
-    local rock=p("Weathered sandstone shoulder",V(26-j*4,22-j*3,25-j*4),V(x+j*8,4+j*4,z+side*j*5),C(131+j*9,103+j*7,77+j*4),Enum.Material.Sandstone,Enum.PartType.Ball)
-    rock.CFrame*=CFrame.Angles(j*.17,i*.6,j*.14)
+    terrain("Weathered sandstone shoulder",V(26-j*4,22-j*3,25-j*4),V(x+j*8,4+j*4,z+side*j*5),C(131+j*9,103+j*7,77+j*4),Enum.Material.Sandstone,CFrame.Angles(j*.17,i*.6,j*.14))
    end
   end
  end

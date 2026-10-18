@@ -226,7 +226,7 @@ function Chapter.create(ctx)
    for i,police in props.police do
     local x=825+state.time*30-(i-1)*32
     ctx.positionVehicle(police.model,V(x,.7,140),-math.pi/2); ctx.animateCruiser(police,0)
-    local seat=(police.model:GetPivot()*CFrame.new(-.9,1.65,.1)).Position-origin
+    local seat=(police.model:GetPivot()*police.driverSeat).Position-origin
     ctx.pose(props.officers[i],seat,-math.pi/2,0,true)
    end
   end

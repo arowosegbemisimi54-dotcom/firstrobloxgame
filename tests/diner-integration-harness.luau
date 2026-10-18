@@ -163,7 +163,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={WarehouseSet="warehouseSet",WarehouseChapter="warehouseChapter",GetawayVan="van",VanMirrors="mirrors",EscapeLandscape="escapeLandscape",CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={PeriodPatrol="patrol",WarehouseSet="warehouseSet",WarehouseChapter="warehouseChapter",GetawayVan="van",VanMirrors="mirrors",EscapeLandscape="escapeLandscape",CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -213,6 +213,9 @@ end)()
 modules.escapeAudio=(function()
 -- INSERT_ESCAPE_AUDIO
 end)()
+modules.patrol=(function()
+-- INSERT_PATROL
+end)()
 modules.escapeProps=(function()
 -- INSERT_ESCAPE_PROPS
 end)()
@@ -233,6 +236,11 @@ local Diner=(function()
 end)()
 local checks=0
 local function check(ok,label) assert(ok,label); checks+=1; print("PASS: "..label) end
+local sceneProps,sceneOrigin
+local originalPropsBuild=modules.escapeProps.build
+modules.escapeProps.build=function(ctx)
+ sceneOrigin=ctx.origin; sceneProps=originalPropsBuild(ctx); return sceneProps
+end
 local diner=Diner.create({name="Test",gender="Boy",outfit={Hat="cowboy"}})
 diner.prepare()
 check(requestedRig=="HumanoidRigTypeR15","diner requests R15 NPCs")
@@ -273,7 +281,7 @@ local landscapeParts=0
 for _,obj in objects do if obj.Name=="Highway Four landscape and timber stash house" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then landscapeParts+=1 end end end end
 for _,obj in objects do if obj.Name=="Highway Four escape cast and props" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then escapeParts+=1 end end end end
 for _,obj in objects do if obj.Name=="Sunset Diner roadside block" then for _,child in obj:GetDescendants() do if child:IsA("BasePart") then exteriorParts+=1 end end end end
-check(parts-exteriorParts-escapeParts<2400 and exteriorParts-landscapeParts<2400 and landscapeParts<1700 and escapeParts<800,"interior and roadside block stay within separate geometry budgets")
+check(parts-exteriorParts-escapeParts<2400 and exteriorParts-landscapeParts<2400 and landscapeParts<1700 and escapeParts<800,string.format("geometry budgets: interior %d/2400, roadside %d/2400, landscape %d/1700, cast and props %d/800",parts-exteriorParts-escapeParts,exteriorParts-landscapeParts,landscapeParts,escapeParts))
 check(counts["Continuous steel roof"]==13 and counts["Stitched leather seat cushion"]==2 and counts["Turning steering wheel"]==1,"van has a closed roof, cabin seats and steering assembly")
 check(counts["Stash house sign"]==1 and counts["Stave water tank"]==1 and counts["Turning wind pump"]==1,"stash house includes barn signage, water tower and wind pump")
 check(counts["Matte black getaway panel van"]==1 and counts["Diner glass entrance"]==1 and counts["Weathered parking court"]==1,"exterior includes getaway van, opening entrance and parking court")
@@ -281,9 +289,52 @@ check(counts["Facing booth vinyl seat"]==8 and counts["Ivory laminate tabletop"]
 check(counts["Walnut diner radio"]==1 and not counts["CRT glass screen"],"broadcast uses one countertop radio and no television")
 check(counts["Upright refrigerator"]==1 and counts["Sink dark basin"]==2 and counts["Stainless extractor hood"]==1,"compact kitchen includes fridge, sinks and extraction")
 check(counts["Sculpted nose"]==12 and counts["Visible teeth"]==12,"diner, crew and officers have visible three-dimensional facial features")
-check(counts["Booth side window"]==4,"each booth bay has a side window")
+check(counts["Booth side window"]==4 and not counts["Clear noon window"],"glazing is limited to booth windows and the existing glass entrance")
 check(counts["Painted landscape"]==2 and counts["Hanging opal globe"]==12,"original paintings and suspended lights are present")
 check(counts["Ketchup bottle"]==7 and counts["Salt shaker"]==7,"all booth tables and counter stations have full condiment sets")
+local function bounds(cf,size)
+ local minX,minZ,maxX,maxZ=math.huge,math.huge,-math.huge,-math.huge
+ for _,x in {-1,1} do for _,y in {-1,1} do for _,z in {-1,1} do
+  local at=(cf*CFrame.new(x*size.X/2,y*size.Y/2,z*size.Z/2)).Position
+  minX=math.min(minX,at.X); maxX=math.max(maxX,at.X); minZ=math.min(minZ,at.Z); maxZ=math.max(maxZ,at.Z)
+ end end end
+ return {minX,minZ,maxX,maxZ}
+end
+local terrainCount=0
+for _,obj in objects do
+ if obj.Name=="Layered desert dune" or obj.Name=="Weathered sandstone shoulder" then
+  terrainCount+=1
+  local b=bounds(obj.CFrame,obj.Size)
+  -- Actual transformed geometry, independently of the generator's exclusion helper.
+  for _,area in {{-225,-98,140,235},{-270,112,1250,166},{860,150,985,235}} do
+   assert(b[3]<=area[1] or b[1]>=area[3] or b[4]<=area[2] or b[2]>=area[4],"landform overlaps a playable lot, arrival lane or road")
+  end
+ end
+end
+check(terrainCount>10,"distant scenery remains while rotated dune and rock bounds clear all playable yards and roads")
+local parkedBounds={}
+for i,unit in sceneProps.police do
+ local parked=modules.escapeRules.policeArrival(i,20)
+ local parkedCF=CFrame.new(parked.x,.7,parked.z)*CFrame.Angles(0,parked.yaw,0)
+ local outer={math.huge,math.huge,-math.huge,-math.huge}
+ for _,part in unit.model:GetDescendants() do if part:IsA("BasePart") then
+  local localCF=CFrame.new(sceneOrigin):ToObjectSpace(part.CFrame)
+  local b=bounds(parkedCF*localCF,part.Size)
+  outer={math.min(outer[1],b[1]),math.min(outer[2],b[2]),math.max(outer[3],b[3]),math.max(outer[4],b[4])}
+  if (part.Transparency or 0)<.5 then
+   for _,height in {2.5,3.8} do
+    local probe=(localCF:Inverse()*CFrame.new(-.82,height,-.15)).Position
+    assert(math.abs(probe.X)>part.Size.X/2 or math.abs(probe.Y)>part.Size.Y/2 or math.abs(probe.Z)>part.Size.Z/2,"solid body fills patrol driver cabin")
+   end
+  end
+ end end
+ parkedBounds[i]=outer
+ local outside=(parkedCF*unit.driverExit).Position
+ local start=modules.escapeRules.officerApproach(i,0)
+ assert(math.abs(outside.X-start.x)<.001 and math.abs(outside.Z-start.z)<.001,"officer teleports between door exit and foot approach")
+end
+check(parkedBounds[2][3]+1<parkedBounds[1][1],"longer period sedans stop with bumper clearance and leave real space for their drivers")
+check(sceneProps.steam.Enabled==false,"truck steam stays off during the diner opening and payment")
 local callbacks={}
 local ui={}
 function ui.make(kind,properties,parent)
@@ -383,7 +434,52 @@ check(r15Crew==6,"all four crew and both officers use independent R15 templates 
 local stopNatural=natural.play(root,ui,function() finishes+=1 end,function() return true end)
 render.callback(100)
 check(finishes==1 and actions.HighwayFour_Interact~=nil,"radio completion hands off into playable chapter without returning to menu")
-local function frames(n) for _=1,n do assert(render.callback,"chapter lost its frame update"); render.callback(.05) end end
+local arrivalTime
+local arrival=modules.escapeRules.policeArrival
+modules.escapeRules.policeArrival=function(i,t) if i==1 then arrivalTime=t end; return arrival(i,t) end
+local posedOfficers={}
+local originalPatrolPose=modules.motion.pose
+modules.motion.pose=function(person,origin,pos,angle,dt,seated,...)
+ if person.style=="officer" then posedOfficers[person]={pos=pos,seated=seated} end
+ return originalPatrolPose(person,origin,pos,angle,dt,seated,...)
+end
+local patrolObserved,brakesObserved,exitObserved,runningObserved=false,false,false,false
+local steeringObserved=false
+local arrivalFovs={}
+local function frames(n) for _=1,n do
+ assert(render.callback,"chapter lost its frame update"); arrivalTime=nil; render.callback(.05)
+ if arrivalTime then
+  patrolObserved=true; arrivalFovs[workspace.CurrentCamera.FieldOfView]=true
+  for i,unit in sceneProps.police do
+   local route=arrival(i,arrivalTime)
+   local actor=sceneProps.officers[i]; local posed=assert(posedOfficers[actor],"patrol driver has no pose")
+   if not route.stopped then assert(posed.seated,"officer runs beside moving cruiser") end
+   local later=arrival(i,arrivalTime+.001)
+   local turn=(later.yaw-route.yaw+math.pi)%(2*math.pi)-math.pi
+   if math.abs(turn)>.0001 and route.steer~=0 then
+    for _,wheel in unit.wheels do if wheel.front then
+     local axle=unit.model:GetPivot():ToObjectSpace(wheel.part.CFrame):VectorToWorldSpace(Vector.new(1,0,0))
+     assert(math.atan2(-axle.Z,axle.X)*turn>0,"front wheels steer against the cruiser's actual turn")
+    end end
+    steeringObserved=true
+   end
+   if route.braking then
+    brakesObserved=true
+    for _,lamp in unit.brakes do assert(lamp.Material==Enum.Material.Neon,"brake lamp is not timed with deceleration") end
+   end
+   if arrivalTime>route.duration+.7 then
+    local doorLocal=unit.model:GetPivot():ToObjectSpace(unit.door:GetPivot())
+    local edge=(doorLocal*CFrame.new(0,0,2.5)).Position
+    assert(edge.X<unit.doorOffset.Position.X-1,"driver door swings into the cabin")
+    exitObserved=true
+   end
+   if arrivalTime>route.duration+1.15 and (actor.motionSpeed or 0)>5 then
+    local knee=actor.joints.LeftKnee.joint.C0
+    if math.abs(knee.r[8])>.4 then runningObserved=true end
+   end
+  end
+ end
+end end
 local function press(name,down) actions["HighwayFour_"..name](name,down and Enum.UserInputState.Begin or Enum.UserInputState.End,{Position=Vector.new(0,0,0)}) end
 press("Interact",true); frames(42)
 local paid=false
@@ -391,7 +487,12 @@ for _,obj in objects do if obj.Name=="Payment hundred dollar bill" and obj.Trans
 check(paid,"payment action places the bill before enabling walking")
 press("Left",true); frames(32); press("Left",false)
 press("Forward",true); frames(86); press("Forward",false)
-frames(870)
+local cinemaSeconds=0; for _,shot in modules.escapeRules.shots do cinemaSeconds+=shot.duration end
+frames(math.ceil(cinemaSeconds/.05)+20)
+modules.escapeRules.policeArrival=arrival; modules.motion.pose=originalPatrolPose
+local shots=0; for _ in arrivalFovs do shots+=1 end
+check(patrolObserved and steeringObserved and brakesObserved and exitObserved and runningObserved and shots>=4,"police sequence stages camera changes, aligned steering, seated driving, braking, outward doors and R15 running")
+check(sceneProps.steam.Enabled,"radiator steam starts after the damaged pickup arrives")
 local driving=false
 for _,obj in objects do if obj.Name=="Interaction hint" and obj.Text and obj.Text:find("SAFEHOUSE") then driving=true end end
 check(driving,"pay, walk through exit and complete all cinematic beats into driving")

@@ -82,7 +82,25 @@ for i=1,2 do
  check(aligned and bounded,"patrol "..i.." follows continuous curved turns facing its travel direction")
  local parked=Rules.policeArrival(i,20)
  local stopped=Rules.policeArrival(i,parked.duration)
- check(parked.stopped and parked.speed<.00001 and math.abs(parked.x-stopped.x)<.00001 and math.abs(parked.x-(-23-i*12))<.001 and math.abs(parked.z+52)<.001,"patrol "..i.." brakes to a stable stop behind the diner")
+ check(parked.stopped and parked.speed<.00001 and math.abs(parked.x-stopped.x)<.00001 and math.abs(parked.x-(-35-(i-1)*15))<.001 and math.abs(parked.z+52)<.001,"patrol "..i.." brakes to a stable stop behind the diner")
+ local braking=Rules.policeArrival(i,parked.duration-.6)
+ check(braking.braking and braking.speed>0 and braking.speed<Rules.policeArrival(i,1).speed and not parked.braking,"patrol "..i.." brake cue coincides with deceleration and ends at rest")
+ local previous=Rules.officerApproach(i,0)
+ local clear,continuous,faces=true,true,true
+ for frame=1,700 do
+  local next=Rules.officerApproach(i,frame*.01)
+  local dx,dz=next.x-previous.x,next.z-previous.z
+  local d=math.sqrt(dx*dx+dz*dz)
+  if d>.141 then continuous=false end
+  -- Expanded 13 x 6 sedan footprint plus room for an R15 actor.
+  for _,x in {-35,-50} do
+   if math.abs(next.x-x)<7.5 and math.abs(next.z+52)<3.8 then clear=false end
+  end
+  if next.moving and math.abs(next.yaw-previous.yaw)<.001 and d>.001 and (dx*(-math.sin(next.yaw))+dz*(-math.cos(next.yaw)))/d<.999 then faces=false end
+  previous=next
+ end
+ local held=Rules.officerApproach(i,9)
+ check(clear and continuous and faces and not held.moving and held.x==previous.x and held.z==previous.z,"officer "..i.." runs around both stopped sedans without teleporting and holds position at the truck")
 end
 local patrol={x=150,z=140,yaw=-math.pi/2,speed=40}
 local target={x=250,z=146}

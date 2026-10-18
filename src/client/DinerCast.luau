@@ -52,8 +52,12 @@ local function makeFace(head,person,index)
 		teeth.Transparency=reacting and 1 or 0
 	end
 end
-function Cast.dress(rig,index)
+function Cast.dress(rig,index,role)
 	local person=people[index]
+	if role=="officer" then
+		person=table.clone(person); person.Style="officer"
+		person.Shirt=C(43,55,68); person.Coat=C(32,43,56); person.Pants=C(31,41,54)
+	end
 	rig.Name=person.Name
 	local head=rig:FindFirstChild("Head")
 	local torso=rig:FindFirstChild("UpperTorso") or rig:FindFirstChild("Torso")
@@ -135,6 +139,12 @@ function Cast.dress(rig,index)
 			piece(torso,"Server name badge",V(.44,.18,.06),CFrame.new(-.55,.45,front-.1),C(230,215,168),nil,Enum.Material.Metal)
 			piece(head,"Hair ribbon",V(.62,.12,.12),CFrame.new(0,.40,.86),C(111,158,146))
 		end
+	elseif person.Style=="officer" then
+		piece(head,"Police cap band",V(2.03,.2,1.13),CFrame.new(0,.57,.02),C(25,32,43))
+		piece(head,"Peaked police cap crown",V(2.12,.52,1.21),CFrame.new(0,.80,.02),C(39,50,63),Enum.PartType.Ball)
+		piece(head,"Police cap visor",V(2.15,.10,.72),CFrame.new(0,.58,-.62),C(20,23,26),Enum.PartType.Ball,Enum.Material.Leather)
+		piece(head,"Police cap brass badge",V(.20,.23,.055),CFrame.new(0,.79,-.59),C(192,161,78),nil,Enum.Material.Metal)
+		piece(torso,"Uniform necktie",V(.13,.65,.07),CFrame.new(0,.4,front-.08),C(23,29,37))
 	else
 		piece(head,"Cook cap band",V(1.85,.21,1.15),CFrame.new(0,.56,0),C(238,231,209))
 		piece(head,"Soft cook cap",V(1.92,.51,1.2),CFrame.new(0,.81,.08),C(238,231,209),Enum.PartType.Ball)

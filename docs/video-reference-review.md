@@ -63,3 +63,41 @@ keeps camera control during interactive steps and gets keyboard, gamepad and tou
 bindings. First-person views retain the body/hands while hiding attached headwear.
 The references' models, footage, music, UI art and character animations are not
 included in the repository.
+
+## Diner and patrol arrival references
+
+The two additional attachments were reviewed as full-duration contact sheets
+(three-second spacing for the first clip, two-second spacing for the second).
+They are presentation references; neither clip shows the requested period police
+arrival. The supplied sedan photograph and written directions guide that scene.
+
+| Attachment | Duration | Observations used |
+| --- | --- | --- |
+| 1 · v15044gf0000d9r63r7og65gom9t6rig | 70.33 s | Game recommendation montage with furnished rooms, contextual interaction, a checkpoint and readable character/vehicle framing. Keep the approach lane, drivers, door actions and destination readable in separate shots. |
+| 2 · v14044g50000d95uianog65k0k4bkjp0 | 33.79 s | Stylized carnival trailer with practical lights and alternating close and wide compositions. Use deliberate framing changes and restrained lighting accents in the patrol sequence. |
+
+Applied changes:
+
+- Original late-1940s-inspired black patrol sedans replace the generic coupes.
+  Rounded hood/fenders, split glass, chrome trim, thin whitewalls, manual window
+  cranks, a dash radio and a single rotating red beacon follow the period brief.
+  The cabins are open inside; both front doors are separate models. Markings are
+  fictional NORTH COUNTY units 41 and 42.
+- The 16-second arrival now has road tracking, a service-lane wide shot, braking
+  and door coverage, an officer approach and a final truck inspection angle.
+  The existing radio dispatch line remains intact. Front-wheel steering follows
+  each turn, brake lamps and the configured skid cue follow deceleration, and
+  the doors swing outward only after stopping. Drivers wear navy uniforms and
+  peaked caps. Their R15 exit/run paths pass around the stopped sedans.
+- A paved west service approach and larger stopping gap accommodate the longer
+  cars. Terrain bounds exclude the whole diner lot, truck approach, patrol lanes,
+  highway and depot. Distant dunes remain; no sand forms overlap the truck.
+- Four smaller booth windows remain. The front has cream plaster, walnut lower
+  panels and the existing glass entrance. The kitchen, booths, radio, paintings,
+  condiments and hanging lights are retained. Radiator steam is lighter and
+  starts after the pickup brakes rather than obscuring it throughout the scene.
+
+No reference footage or soundtrack is shipped. Automated checks cover transformed
+terrain bounds, cabin clearance, vehicle separation, steering direction, exit
+continuity and the complete chapter. Rendered composition and final R15 clearance
+still require the Studio checks in `highway-four-playtest.md`.

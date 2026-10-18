@@ -4,7 +4,7 @@ Rules.shots={
  {name="truck",duration=2}, {name="reveal",duration=1.5},
  {name="unload",duration=6}, {name="approach",duration=4},
  {name="board",duration=1.5}, {name="warning",duration=3.5},
- {name="police",duration=11}, {name="burnout",duration=2},
+ {name="police",duration=16}, {name="burnout",duration=2},
  {name="escape",duration=4}, {name="bill",duration=4}, {name="title",duration=3},
 }
 Rules.lines={
@@ -91,7 +91,7 @@ end
 function Rules.policeArrival(index,time)
  local lane=-105-(index-1)*12
  local start=-180-index*18
- local finish=-23-index*12
+ local finish=-35-(index-1)*15
  local radius=18
  local first=lane-radius-start
  local vertical=156
@@ -104,7 +104,7 @@ function Rules.policeArrival(index,time)
  local t=math.clamp(time,0,duration)
  local brakingTime=math.max(0,t-(duration-braking))
  local distance=cruise*(t-brakingTime*brakingTime/(2*braking))
- local speed=cruise*(1-brakingTime/braking)
+ local speed=t>=duration and 0 or cruise*(1-brakingTime/braking)
  local x,z,dx,dz,steer
  steer=0
  if distance<first then x=start+distance; z=140; dx=1; dz=0
@@ -121,7 +121,27 @@ function Rules.policeArrival(index,time)
  else
   x=lane+radius+distance-first-arc-vertical-arc; z=-52; dx=1; dz=0
  end
- return {x=x,z=z,yaw=math.atan2(-dx,-dz),speed=speed,steer=steer,stopped=time>=duration,duration=duration}
+ return {x=x,z=z,yaw=math.atan2(-dx,-dz),speed=speed,steer=steer,braking=brakingTime>0 and speed>0,stopped=time>=duration,duration=duration}
+end
+-- Drivers step out on the driver's side, then take separate routes around the
+-- parked sedans. Distance drives the running gait, including the final stop.
+function Rules.officerApproach(index,time)
+ local x=-35-(index-1)*15-.9
+ local points=index==1 and {{x,-56.7},{x,-59.5},{-23,-59.5},{-13,-59.5},{-13,-47}}
+  or {{x,-56.7},{x,-64.5},{-23,-64.5},{-14,-62}}
+ local distance=math.max(0,time)*14
+ for i=1,#points-1 do
+  local a,b=points[i],points[i+1]
+  local dx,dz=b[1]-a[1],b[2]-a[2]
+  local length=math.sqrt(dx*dx+dz*dz)
+  if distance<length then
+   local u=distance/length
+   return {x=a[1]+dx*u,z=a[2]+dz*u,yaw=math.atan2(-dx,-dz),moving=true}
+  end
+  distance-=length
+ end
+ local last=points[#points]
+ return {x=last[1],z=last[2],yaw=math.atan2(-(-5-last[1]),-(-55-last[2])),moving=false}
 end
 -- Pursuit advances along the cruiser's heading with bounded steering, rather
 -- than translating diagonally toward the player's position.

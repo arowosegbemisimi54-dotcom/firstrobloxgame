@@ -92,16 +92,17 @@ function Escape.start(ctx)
    for i,w in ext.vehicle.wheels do w.model:PivotTo(vehicle:GetPivot()*wheelOffsets[i]*CFrame.Angles(wheelRoll,0,0)) end
   end
  end
- local function animateCruiser(police,steer)
+ local function animateCruiser(police,steer,braking)
   local pivot=police.model:GetPivot()
   local pos=pivot.Position
   local distance=police.lastPosition and (pos-police.lastPosition).Magnitude or 0
   police.lastPosition=pos
-  police.roll=(police.roll or 0)+math.min(distance,10)/1.08
+  police.roll=(police.roll or 0)+math.min(distance,10)/(police.radius or 1.08)
+  for _,lamp in police.brakes do lamp.Material=braking and Enum.Material.Neon or Enum.Material.Glass end
   for _,wheel in police.wheels do
    local localCF=wheel.offset
    -- Tires are cylinders whose axle is local X.
-   wheel.part.CFrame=pivot*localCF*CFrame.Angles(0,wheel.front and steer or 0,0)*CFrame.Angles(police.roll,0,0)
+   wheel.part.CFrame=pivot*localCF*CFrame.Angles(0,wheel.front and -steer or 0,0)*CFrame.Angles(police.roll,0,0)
   end
  end
  local function pose(person,pos,angle,walk,seated)
@@ -277,7 +278,7 @@ function Escape.start(ctx)
   elseif name=="approach" then doors(-1.2,0,1.6)
   elseif name=="board" then audio.cue("engine")
   elseif name=="warning" then audio.cue("door"); doors(0,0,0)
-  elseif name=="police" then audio.cue("siren"); audio.cue("skid"); shake=.01
+  elseif name=="police" then audio.cue("siren"); shake=0
   elseif name=="burnout" then props.burnout:Emit(45); audio.cue("skid"); shake=.018
   elseif name=="bill" then audio.stop("siren")
   elseif name=="title" then title.Visible=true; audio.cue("bass"); audio.stop("engine"); shake=0 end
@@ -286,6 +287,7 @@ function Escape.start(ctx)
   local u=math.clamp(t/duration,0,1); local ease=u*u*(3-2*u)
   if name=="truck" then
    local x=-115+110*(1-(1-u)^3); positionVehicle(props.truck,V(x,.7,-55),-math.pi/2)
+   if u>.7 then props.steam.Enabled=true end
    view(V(18,7,-35),V(x,3,-55),60,dt,false)
    heroPos=V(0,3,44):Lerp(V(55,3,38),u); pose(hero,heroPos,-math.pi/2,1,false)
   elseif name=="reveal" then
@@ -334,25 +336,45 @@ function Escape.start(ctx)
    seatHero(); for _,person in props.crew do seatedCrew(person) end
    view(V(69,5.6,-61),V(62,4.5,-53),48,dt,false)
   elseif name=="police" then
-   view(V(0,105,26),V(0,0,-5),65,dt,false)
+   local lead=Rules.policeArrival(1,t)
+   if t<2.3 then
+    view(V(lead.x+18,5.2,lead.z+17),V(lead.x,2.6,lead.z),55,dt,false)
+   elseif t<5.4 then
+    view(V(-73,17,lead.z+27),V(-108,2.3,lead.z-3),59,dt,false)
+   elseif t<7.8 then
+    view(V(-23,4.3,-73),V(lead.x,2.7,-52),53,dt,false)
+   elseif t<11 then
+    view(V(-24,6,-76):Lerp(V(-17,4.8,-74),math.clamp((t-7.8)/3.2,0,1)),V(-20,3.3,-56),55,dt,false)
+   else
+    view(V(-24,5.6,-40):Lerp(V(-20,4.8,-43),math.clamp((t-11)/5,0,1)),V(-10,3.8,-55),54,dt,false)
+   end
    for i,police in props.police do
     local route=Rules.policeArrival(i,t)
     positionVehicle(police.model,V(route.x,.7,route.z),route.yaw)
-    animateCruiser(police,route.steer)
-    local driverPosition=(police.model:GetPivot()*CFrame.new(-.9,1.65,.1)).Position-origin
+    animateCruiser(police,route.steer,route.braking)
+    if route.braking and not police.brakeCue then
+     police.brakeCue=true; audio.cue("skid"); shake=.005
+    end
+    local pivot=police.model:GetPivot()
+    local driverPosition=(pivot*police.driverSeat).Position-origin
     if not route.stopped then
      pose(props.officers[i],driverPosition,route.yaw,0,true)
     else
      local exitTime=t-route.duration
-     local doorOpen=math.sin(math.clamp(exitTime/.8,0,1)*math.pi/2)
-     police.door:PivotTo(police.model:GetPivot()*police.doorOffset*CFrame.Angles(0,doorOpen*1.15,0))
-     local v=math.clamp((exitTime-.6)/2.1,0,1)
-     local from=V(route.x+1,3,route.z-4)
-     local to=V(-13-i*4,3,-49)
-     if exitTime<.6 then
-      pose(props.officers[i],driverPosition:Lerp(from,exitTime/.6),route.yaw,0,exitTime<.25)
+     if not police.exitCue then police.exitCue=true; audio.cue("door") end
+     local doorOpen=math.sin(math.clamp(exitTime/.6,0,1)*math.pi/2)
+     police.door:PivotTo(pivot*police.doorOffset*CFrame.Angles(0,-doorOpen*1.1,0))
+     if exitTime<1.15 then
+      local u=math.clamp((exitTime-.2)/.95,0,1)
+      local sill=(pivot*police.driverStep).Position-origin
+      local outside=(pivot*police.driverExit).Position-origin
+      local a=math.clamp(u/.6,0,1); local b=math.clamp((u-.6)/.4,0,1)
+      local step=u<.6 and driverPosition:Lerp(sill,a*a*(3-2*a)) or sill:Lerp(outside,b*b*(3-2*b))
+      pose(props.officers[i],step,route.yaw,0,true)
+      Motion.board(props.officers[i],1-u,false)
      else
-      pose(props.officers[i],from:Lerp(to,v),-math.pi/2,v<1 and 1 or 0,false)
+      local approach=Rules.officerApproach(i,exitTime-1.15)
+      pose(props.officers[i],V(approach.x,3,approach.z),approach.yaw,approach.moving and 1 or 0,false)
      end
     end
    end
@@ -382,7 +404,11 @@ function Escape.start(ctx)
   Rules.advance(state,dt)
   ext.landscape.update(elapsed,ctx.reducedMotion())
   for i=2,#ctx.actors do local actor=ctx.actors[i]; if actor.face then actor.face(elapsed,false,true) end; ctx.setJoint(actor,"Neck",CFrame.Angles(0,math.sin(elapsed*.5+i)*.15,0)) end
-  for _,police in props.police do police.light.Brightness=math.sin(elapsed*12)>0 and 3 or .2 end
+  for i,police in props.police do
+   local angle=elapsed*5+i*1.7
+   police.beacon.CFrame=police.model:GetPivot()*police.beaconOffset*CFrame.Angles(0,angle,0)
+   police.light.Brightness=.18+math.max(0,math.cos(angle))*.4
+  end
   local phase=state.phase
   local keyName=phase=="cinematic" and Rules.shots[state.shot].name or phase
   if keyName~=lastKey then
@@ -443,7 +469,7 @@ function Escape.start(ctx)
      local distance=Rules.pursue(police,car,dt)
      positionVehicle(police.model,V(police.x,.7,police.z),police.yaw)
      animateCruiser(police,police.steer)
-     pose(props.officers[i],(police.model:GetPivot()*CFrame.new(-.9,1.65,.1)).Position-origin,police.yaw,0,true)
+     pose(props.officers[i],(police.model:GetPivot()*police.driverSeat).Position-origin,police.yaw,0,true)
      nearest=math.min(nearest,distance)
     end
    end

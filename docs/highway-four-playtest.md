@@ -140,3 +140,29 @@ server-authoritative multiplayer missions or persistent checkpoints. The retry
 checkpoint lasts for this chapter session. Geometry and controls still require
 visual Studio and mobile-device validation. Engine/siren/skid recording slots
 remain unconfigured; no reference-video soundtrack was imported.
+
+### Period patrol and diner cleanup
+
+- At the payment table, confirm there are four smaller windows beside the booth
+  seats. The front wall should be solid cream plaster above walnut paneling,
+  with only the existing glass entrance. Check the entrance still opens and
+  the smaller windows show the side parking lot and nearby lodge.
+- Walk outside and inspect the lot and rear alley: no dunes or sandstone should
+  intersect the paving, pickup, van or arrival lanes. Distant landforms remain.
+  The pickup's light gray radiator steam should start after braking and leave
+  its body readable.
+- Watch both black period sedans follow the west paved service approach. They
+  should turn with their front wheels, brake to separated stops and retain their
+  seated drivers until stopped. Look for one red rotating beacon per car, round
+  headlights, chrome grilles, split windscreens and NORTH COUNTY lettering.
+- In the closer arrival shots, inspect the officers' navy uniforms and peaked
+  caps inside the open cabins. Doors must swing outward. Officers should duck
+  through the opening, stand outside, then run along separate routes around the
+  cars and stop to cover the abandoned truck. Check hats, knees, boots and door
+  edges from the camera angles at both 30 and 60 FPS.
+- The arrival lasts 16 seconds, with five compositions covering driving, braking,
+  exiting, running and truck inspection. Confirm the dispatch captions remain
+  legible and Reduced Motion removes shake. Skid/siren audio still requires
+  configured assets; this change aligns the cue timing, not the recordings.
+- Finish the chase and warehouse again. Confirm the same period cars appear in
+  mirrors and the warehouse patrol, and returning to the menu removes the set.

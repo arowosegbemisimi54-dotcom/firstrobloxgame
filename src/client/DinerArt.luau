@@ -82,12 +82,17 @@ function Art.build(model,origin)
 	end end
 	part("Back teal wall",V(76,14.5,.5),V(0,6.75,-36),teal,Enum.Material.Plaster)
 	part("Right plaster wall",V(.5,14.5,72),V(38,6.75,0),ivory,Enum.Material.Plaster)
-	part("Booth window base wall",V(.5,2.5,72),V(-38,1.25,0),teal)
-	part("Booth window upper wall",V(.5,4.8,72),V(-38,12.1,0),ivory,Enum.Material.Plaster)
-	for _,z in {-31,-15,1,17,33} do part("Booth window wall pier",V(.5,14.5,4),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
+	part("Booth window base wall",V(.5,3.8,72),V(-38,1.9,0),teal)
+	part("Booth window upper wall",V(.5,6.3,72),V(-38,11.35,0),ivory,Enum.Material.Plaster)
+	for _,z in {-31,-15,1,17,33} do part("Booth window wall pier",V(.5,14.5,8),V(-38,7.25,z),ivory,Enum.Material.Plaster) end
 	for _,z in {-34.5,34.5} do part("Booth wall end",V(.5,14.5,3),V(-38,6.75,z),ivory,Enum.Material.Plaster) end
-	part("Front window header",V(76,2.5,.5),V(0,13.25,36),ivory,Enum.Material.Plaster)
-	for _,x in {-20.5,20.5} do part("Window sill wall",V(35,2,.5),V(x,.8,36),teal) end
+	-- Solid front wall with one entrance, rather than a second wall of glazing.
+	part("Entrance plaster header",V(6,6.5,.5),V(0,11.25,36),ivory,Enum.Material.Plaster)
+	for _,x in {-20.5,20.5} do
+		part("Front plaster wall",V(35,14.5,.5),V(x,7.25,36),ivory,Enum.Material.Plaster)
+		part("Front walnut wainscot",V(35,2.7,.12),V(x,1.35,35.68),C(105,77,50),Enum.Material.WoodPlanks)
+		part("Front chair rail",V(35,.13,.2),V(x,2.75,35.6),chrome,Enum.Material.Metal)
+	end
 	part("Ceiling",V(76,.25,72),V(0,14.5,0),C(217,220,205))
 	for x=-36,36,4 do part("Pressed ceiling seam",V(.04,.04,72),V(x,14.34,0),chrome,Enum.Material.Metal) end
 	for z=-36,36,4 do part("Pressed ceiling seam",V(76,.04,.04),V(0,14.34,z),chrome,Enum.Material.Metal) end
@@ -99,19 +104,12 @@ function Art.build(model,origin)
 		local light=Instance.new("SurfaceLight"); light.Name="Noon window fill"; light.Face=face; light.Color=C(239,247,255); light.Brightness=1.2; light.Range=44; light.Angle=110; light.Shadows=true; light.Parent=window
 	end
 	for _,z in {-23,-7,9,25} do
-		local window=part("Booth side window",V(.1,7.2,12),V(-38,6.1,z),C(210,231,235),Enum.Material.Glass)
+		local window=part("Booth side window",V(.1,4.4,8),V(-38,6,z),C(210,231,235),Enum.Material.Glass)
 		daylight(window,Enum.NormalId.Right)
-		for _,dz in {-6,0,6} do part("Side window mullion",V(.25,7.2,.12),V(-37.9,6.1,z+dz),chrome,Enum.Material.Metal) end
-		for _,y in {2.5,6.1,9.7} do part("Side window horizontal frame",V(.25,.12,12),V(-37.9,y,z),chrome,Enum.Material.Metal) end
-		part("Booth window sill",V(.85,.15,12.5),V(-37.6,2.45,z),ivory)
-	end
-	for x=-30,30,12 do
-		local width=math.abs(x)==6 and 6 or 10
-		local center=math.abs(x)==6 and (x<0 and -7 or 7) or x
-		local window=part("Clear noon window",V(width,10,.1),V(center,7,36),C(210,231,235),Enum.Material.Glass)
-		daylight(window,Enum.NormalId.Front)
-		for _,dx in {-width/2,0,width/2} do part("Brushed window mullion",V(.12,10,.25),V(center+dx,7,35.9),chrome,Enum.Material.Metal) end
-		for _,y in {2,7,12} do part("Window horizontal frame",V(width,.12,.25),V(center,y,35.9),chrome,Enum.Material.Metal) end
+		for _,dz in {-4,0,4} do part("Side window mullion",V(.25,4.4,.12),V(-37.9,6,z+dz),chrome,Enum.Material.Metal) end
+		for _,y in {3.8,8.2} do part("Side window horizontal frame",V(.25,.12,8),V(-37.9,y,z),chrome,Enum.Material.Metal) end
+		part("Booth window sill",V(.85,.15,8.5),V(-37.6,3.75,z),ivory)
+		part("Simple window pelmet",V(.55,.35,8.5),V(-37.65,8.4,z),C(105,77,50),Enum.Material.Wood)
 	end
 	part("Exterior sand",V(500,1,500),V(0,-.7,0),C(193,164,117),Enum.Material.Sand)
 	-- The exterior module supplies the parking court and highway.

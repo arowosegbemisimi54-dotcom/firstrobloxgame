@@ -1,4 +1,5 @@
 local Cast=require(script.Parent.DinerCast)
+local Patrol=require(script.Parent.PeriodPatrol)
 local Props={}
 function Props.build(ctx)
  local V,C=Vector3.new,Color3.fromRGB
@@ -40,7 +41,11 @@ function Props.build(ctx)
  local function smoke(parent,rate,size)
   local emitter=Instance.new("ParticleEmitter"); emitter.Name="Cinematic smoke"; emitter.Texture="rbxasset://textures/particles/smoke_main.dds"; emitter.Rate=rate; emitter.Lifetime=NumberRange.new(1.5,3); emitter.Speed=NumberRange.new(1,3); emitter.SpreadAngle=Vector2.new(30,30); emitter.Acceleration=V(1,2,0); emitter.Color=ColorSequence.new(C(153,149,135)); emitter.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.25),NumberSequenceKeypoint.new(1,1)}); emitter.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,.6),NumberSequenceKeypoint.new(1,size)}); emitter.Parent=parent; return emitter
  end
- local steam=smoke(radiator,14,5)
+ local steam=smoke(radiator,5,2.2)
+ steam.Name="Light radiator steam"; steam.Enabled=false
+ steam.Lifetime=NumberRange.new(.7,1.5); steam.Speed=NumberRange.new(1.8,3)
+ steam.Acceleration=V(.15,2.5,0); steam.Color=ColorSequence.new(C(204,208,202))
+ steam.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.85),NumberSequenceKeypoint.new(.25,.66),NumberSequenceKeypoint.new(1,1)})
  local exhaust=attach(ext.van,"Getaway rear tire smoke source",V(.1,.1,.1),V(2.8,.5,3.9),C(25,25,25)); exhaust.Transparency=1
  local burnout=smoke(exhaust,0,4)
  local function rig(index,name,masked)
@@ -53,7 +58,7 @@ function Props.build(ctx)
   end
   local humanoid=character:FindFirstChildOfClass("Humanoid")
   if humanoid then humanoid.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None end
-  local _,face=Cast.dress(character,(index-1)%6+1); character.Name=name; character.Parent=folder
+  local _,face=Cast.dress(character,(index-1)%6+1,not masked and "officer" or nil); character.Name=name; character.Parent=folder
   local joints={}
   for _,obj in character:GetDescendants() do if obj:IsA("Motor6D") then joints[obj.Name]={joint=obj,base=obj.C0} end end
   local root=character:FindFirstChild("HumanoidRootPart"); root.Anchored=true; character.PrimaryPart=root
@@ -71,7 +76,6 @@ function Props.build(ctx)
    table.insert(baggage,wearable(arm,"Duffel leather handle",V(.6,.16,.15),CFrame.new(0,-.25,0),C(49,37,25)))
    table.insert(baggage,wearable(arm,"Duffel zipper",V(.05,.04,1.5),CFrame.new(0,-.3,0),C(178,159,105)))
   else
-   for _,obj in character:GetDescendants() do if obj:IsA("BasePart") and (obj.Name:find("jacket") or obj.Name:find("trouser") or obj.Name:find("Torso") or obj.Name:find("Arm") or obj.Name:find("Leg")) then obj.Color=C(37,49,64) end end
    wearable(character.UpperTorso,"Officer brass badge",V(.2,.25,.04),CFrame.new(-.5,.45,-.61),C(191,153,70))
    local arm=character:FindFirstChild("RightHand")
    wearable(arm,"Period service revolver",V(.16,.19,.65),CFrame.new(0,-.15,-.28),C(49,51,51))
@@ -86,29 +90,7 @@ function Props.build(ctx)
   local bag=attach(ext.van,"Stowed cash duffel "..i,V(1.1,.9,1.9),V((i%2)*1.3-.65,1.8,2.8+math.floor((i-1)/2)*1.8),C(76,70,48)); bag.Shape=Enum.PartType.Ball; bag.Transparency=1; cargoBags[i]=bag
  end
  local police={}
- for i=1,2 do
-  local car=ext.parked(1,V(-180-i*18,0,140),-math.pi/2); car.Name="Highway patrol cruiser "..i
-  for _,obj in car:GetDescendants() do if obj:IsA("BasePart") and obj.Name:find("Coupe") then obj.Color=C(28,33,36) end end
-  local beacon=attach(car,"Red rotating police beacon",V(.65,.7,.65),V(0,4.25,.3),C(207,39,25)); beacon.Material=Enum.Material.Neon
-  local light=Instance.new("PointLight"); light.Color=C(255,54,29); light.Range=19; light.Brightness=2; light.Parent=beacon
-  local lamp=attach(car,"Cruiser spotlamp",V(.4,.4,.4),V(2,3,-1.4),C(213,210,179))
-  local beam=Instance.new("SpotLight"); beam.Face=Enum.NormalId.Front; beam.Range=45; beam.Angle=55; beam.Brightness=2; beam.Parent=lamp
-  local pivot=car:GetPivot()
-  local wheels={}
-  for _,obj in car:GetDescendants() do
-   if obj:IsA("BasePart") and (obj.Name=="Parked tire" or obj.Name=="Parked hubcap" or obj.Name=="Whitewall tire ring" or obj.Name=="Polished inset hubcap") then
-    local offset=pivot:ToObjectSpace(obj.CFrame)
-    table.insert(wheels,{part=obj,offset=offset,front=offset.Position.Z<0})
-   end
-  end
-  local door=Instance.new("Model"); door.Name="Patrol driver door"; door.Parent=car
-  local hinge=pivot*CFrame.new(-1.94,2.5,-1.4)
-  for _,spec in {{"Patrol door panel",V(.12,.9,2.3),V(-1.94,1.9,-.25),C(32,38,41)}, {"Patrol door window",V(.08,.95,2.1),V(-1.94,2.9,-.25),C(67,94,99)}, {"Patrol door handle",V(.18,.1,.35),V(-2.04,2.35,.52),C(192,196,184)}} do
-   local item=attach(car,spec[1],spec[2],spec[3],spec[4]); item.Parent=door
-  end
-  door.WorldPivot=hinge
-  police[i]={model=car,light=light,x=-180-i*18,z=140,yaw=-math.pi/2,speed=0,wheels=wheels,door=door,doorOffset=pivot:ToObjectSpace(hinge)}
- end
+ for i=1,2 do police[i]=Patrol.build(ext.part,origin,ext.model,i) end
  return {cargoBags=cargoBags,folder=folder,payment=payment,airborne=airborne,truck=truck,steam=steam,burnout=burnout,crew=crew,officers=officers,police=police}
 end
 return Props
