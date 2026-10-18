@@ -1,4 +1,5 @@
 -- Bounded, deterministic roadside detail and an original timber stash house.
+local WarehouseSet=require(script.Parent.WarehouseSet)
 local Landscape={}
 function Landscape.build(part,origin,parent)
  local V,C=Vector3.new,Color3.fromRGB
@@ -112,6 +113,7 @@ function Landscape.build(part,origin,parent)
  local rotor=Instance.new("Model"); rotor.Name="Turning wind pump"; rotor.Parent=model
  for i=1,12 do local a=i*math.pi/6; local blade=p("Wind pump blade",V(.8,4,.08),V(880+math.sin(a)*3.7,31+math.cos(a)*3.7,198),C(137,141,120),Enum.Material.CorrodedMetal); blade.CFrame*=CFrame.Angles(0,0,-a); blade.Parent=rotor end
  rotor.WorldPivot=CFrame.new(origin+V(880,31,198)); local rotorBase=rotor:GetPivot()
- return {model=model,update=function(time,reduced) if not reduced then rotor:PivotTo(rotorBase*CFrame.Angles(0,0,time*.28)) end end}
+ local depot=WarehouseSet.build(part,origin,model)
+ return {model=model,depot=depot,update=function(time,reduced) if not reduced then rotor:PivotTo(rotorBase*CFrame.Angles(0,0,time*.28)) end end}
 end
 return Landscape

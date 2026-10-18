@@ -1,0 +1,63 @@
+local Rules=(function()
+-- INSERT_WAREHOUSE_RULES
+end)()
+local n=0
+local function check(ok,text) assert(ok,text); n+=1; print('PASS: '..text) end
+local car={x=920,z=163,yaw=math.pi,speed=0}
+local s=Rules.new()
+check(not Rules.interact(s,Rules.gate,car),'arrival framing cannot accidentally trigger an interaction')
+Rules.advance(s,3.2)
+check(s.phase=='gate','arrival shot hands back control after its fixed duration')
+check(not Rules.interact(s,{x=920,z=160},car),'warehouse interaction requires physical proximity')
+check(Rules.interact(s,Rules.gate,car) and not Rules.interact(s,Rules.gate,car),'latch cannot be triggered twice during its animation')
+Rules.advance(s,1.29); check(not s.open,'closed doorway remains blocked until opening finishes')
+Rules.advance(s,.02); check(s.open and s.phase=='return','opening releases the bay and asks player to return to the van')
+local door=Rules.target(s,car)
+check(math.abs(door.x-924.6)<.001 and math.abs(door.z-166.4)<.001,'driver interaction uses the rotated van door position')
+Rules.interact(s,door,car); Rules.advance(s,1)
+check(s.phase=='park','boarding completes before parking controls become active')
+check(not Rules.interact(s,door,car),'parking objective cannot complete in the driveway')
+car.x=920; car.z=202; car.speed=4
+check(not Rules.parked(car),'moving van must brake before the player can exit')
+car.speed=0; car.yaw=0
+check(not Rules.parked(car),'van must face the back wall to leave its cargo doors accessible')
+car.yaw=math.pi
+check(Rules.interact(s,door,car),'aligned stationary van can be parked')
+Rules.advance(s,1)
+check(s.phase=='unload' and s.search>68,'parking starts the search patrol countdown and unloading objective')
+local rear=Rules.target(s,car)
+check(math.abs(rear.z-194)<.001,'cargo interaction stays behind the parked van')
+check(Rules.interact(s,rear,car),'player can lift cargo at the rear doors')
+Rules.advance(s,.8)
+check(s.carrying and s.delivered==0,'lifting carries a bag without falsely counting it as delivered')
+check(not Rules.interact(s,rear,car),'bag must actually reach the stash pallet')
+check(Rules.interact(s,Rules.stash,car),'cash can be placed at the stash pallet')
+Rules.advance(s,.8)
+check(not s.carrying and s.delivered==1,'placing deposits exactly one bag')
+rear=Rules.target(s,car); Rules.interact(s,rear,car); Rules.advance(s,.8)
+Rules.interact(s,Rules.stash,car); Rules.advance(s,.8)
+Rules.advance(s,12)
+check(s.phase=='shutter' and s.delivered==2 and s.crewDelivered==2,'all four bags including crew cargo must be secured before closing')
+local latch=Rules.target(s,car); Rules.interact(s,latch,car); Rules.advance(s,1.5)
+check(not s.open and s.phase=='blackout','closing seals the loading bay but does not prematurely complete the mission')
+check(Rules.interact(s,Rules.switch,car) and not s.lights,'player must operate the workshop light switch')
+Rules.advance(s,8)
+check(s.phase=='complete','secured cargo, shut doors and lights out earn the final patrol scene and completion')
+Rules.advance(s,100); check(s.phase=='complete','completed mission cannot later fail from the old timer')
+local failed=Rules.new(true); Rules.advance(failed,70)
+check(failed.phase=='failed','leaving the van exposed when the patrol returns fails the warehouse objective')
+local retry=Rules.new(true)
+check(retry.phase=='unload' and retry.open and retry.delivered==0 and retry.search==70,'retry resets cargo and pressure at the warehouse checkpoint')
+check(not Rules.walkable(920,183,false) and Rules.walkable(920,183,true),'on-foot doorway collision follows the actual shutter state')
+check(not Rules.walkable(905,192,true) and not Rules.walkable(939,205,true),'on-foot movement cannot pass through crates or the workbench')
+check(Rules.drivable(car,920,202) and not Rules.drivable(car,913,202),'van footprint respects both sides of the loading aperture')
+car.yaw=1
+check(not Rules.drivable(car,920,205),'turning van corners cannot clip through the narrow interior parking corridor')
+local function run(rate)
+ local a=Rules.new(true)
+ for _=1,rate*15 do Rules.advance(a,1/rate) end
+ return a
+end
+local a,b=run(30),run(120)
+check(math.abs(a.search-b.search)<.001 and a.crewDelivered==b.crewDelivered,'patrol timer and crew delivery remain consistent across frame rates')
+print(n..' warehouse checks passed')

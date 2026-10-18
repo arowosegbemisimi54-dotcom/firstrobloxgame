@@ -47,6 +47,25 @@ function Motion.joint(person,name,rotation)
  local data=person.joints[name] or person.joints[aliases[name]]
  if data then data.joint.C0=data.base*rotation end
 end
+function Motion.visibility(person,firstPerson)
+ if not person.viewParts then
+  local parts,links={},{}
+  local head=person.rig:FindFirstChild("Head")
+  local attached={}; if head then attached[head]=true end
+  for _,object in person.rig:GetDescendants() do
+   if object:IsA("BasePart") then table.insert(parts,object); if head and object:IsDescendantOf(head) then attached[object]=true end
+   elseif object:IsA("Weld") or object:IsA("WeldConstraint") then table.insert(links,object) end
+  end
+  -- Include fitted hair, facial pieces and hats, but not the articulated torso.
+  for _=1,4 do for _,link in links do
+   if link.Part0 and link.Part1 and (attached[link.Part0] or attached[link.Part1]) then attached[link.Part0]=true; attached[link.Part1]=true end
+  end end
+  person.viewParts=parts; person.headParts=attached
+ end
+ if person.viewFirstPerson==firstPerson then return end
+ person.viewFirstPerson=firstPerson
+ for _,part in person.viewParts do if part.Parent then part.LocalTransparencyModifier=firstPerson and person.headParts[part] and 1 or 0 end end
+end
 function Motion.sample(distance,speed,seated,style,time)
  local phase=distance*math.pi/3.4
  local moving=math.clamp(speed/9,0,1)

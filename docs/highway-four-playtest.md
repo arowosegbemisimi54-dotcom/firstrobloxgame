@@ -20,8 +20,18 @@ or persistent mission progress are granted by the local controller.
 5. Drive west along Highway Four. WASD, left stick or RT accelerates; S reverses;
    Space/LT brakes. Right mouse drag, touch drag or the right stick rotates the camera; the mouse wheel zooms. V/right-stick click toggles the detailed cabin view with live patrol mirrors. Touch controls are provided. Gain 150 studs on the patrol
    for four seconds, then turn into OLD MOTOR DEPOT at the end of the route.
-   Stop in its driveway to finish. Being stopped near patrol for four seconds
-   gives an interception screen with a retry action.
+   Stop in its driveway to begin **No Loose Ends**. Being stopped near patrol
+   for four seconds gives an interception screen with a retry action.
+6. After the warehouse establishing shot, walk to the loading-bay latch and use
+   E / controller X / the touch Use button. Open the doors, return to the van,
+   drive inside the painted guides facing the back wall, brake and use E to park.
+7. Carry two duffels from the rear cargo doors to the marked pallet. Two crew
+   members carry the other bags; two guard the entrance. Shift / left-stick click
+   / the touch Run button sprints while empty handed; carrying a bag slows you.
+8. Once all four bags are inside, close the loading doors from the interior latch
+   and operate the light switch. The search patrol returns after 70 seconds.
+   Failure retries at the parked van, with fresh cargo and timer. Success plays
+   three short patrol/interior/cash shots before the chapter-complete panel.
 
 The opening retains noon lighting. The new exterior sequence shifts to sunset
 following the Part 2 notes. The black panel van uses the supplied vintage van as
@@ -75,7 +85,8 @@ handling adjustments await accessible clips.
   each rendered model move. This includes reversed accessory welds. Scene parts
   are anchored and joints disabled so physics does not overwrite the authored
   walk, run, seated and aiming poses. Live player rigs are not modified by this
-  scene-only solver.
+  scene-only solver. A separate live R15 animation layer now handles grounded
+  gait without anchoring the live avatar or overriding airborne/action tracks.
 - Hair crown, temples, rear panel, bun and headwear fit each NPC head's dimensions.
 - Patrol arrival follows two tangent quarter-circle turns with distance-based
   wheel rotation, front wheel steering and final braking. Drivers stay seated
@@ -101,3 +112,31 @@ mid-sweep and confirm they finish the sweep and park. Test gradual steering and
 return-to-center at low and high speeds, reverse wheel motion, cabin arm movement,
 and reduced-motion camera behavior. See `docs/video-reference-review.md` for the
 specific reviewed sequences and the boundaries of the changes.
+
+
+### New warehouse and animation playtest
+
+- Confirm normal walk and Shift sprint have different stride, knee lift and torso
+  lean. Check idle, dine, alarm reaction, boarding, bag carry and placing poses.
+- Check the wardrobe idle and live R15 avatar after respawning. Jump/fall, sit,
+  equip a tool and play an Action-priority track; the live gait must yield.
+- First-person mode should retain hands/body and hide the head and all attached
+  face/hair/hat pieces. Toggle back and confirm every hidden part is restored.
+- Orbit during driving and on foot with mouse, right stick and touch. Check barn
+  camera clearance, the porch roof and the van cabin. Cinematic shots intentionally
+  control framing; interactive sections allow camera rotation.
+- Approach each warehouse target out of range and press E: no action should fire.
+  Repeat E during opening, boarding or lifting: no duplicated actions or bags.
+- Drive slowly through the open loading bay and try turning against its frame.
+  The full van footprint is bounded. Braking and forward alignment are required
+  before parking. Walk around the van, workbench, crates and cash pallet.
+- Let the 70-second timer expire once; retry the warehouse. Verify fresh cargo,
+  open doors, lights on, a new timer and the parked van. Then complete the mission.
+- Repeat success and failure in first person and confirm result buttons have a
+  usable mouse cursor. Exit the chapter and re-enter to check cleanup.
+
+The depot uses the existing kinematic local chapter controller; it does not add
+server-authoritative multiplayer missions or persistent checkpoints. The retry
+checkpoint lasts for this chapter session. Geometry and controls still require
+visual Studio and mobile-device validation. Engine/siren/skid recording slots
+remain unconfigured; no reference-video soundtrack was imported.

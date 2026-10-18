@@ -8,6 +8,7 @@ local Props=require(script.Parent.EscapeProps)
 local Audio=require(script.Parent.EscapeAudio)
 local Motion=require(script.Parent.CharacterMotion)
 local Mirrors=require(script.Parent.VanMirrors)
+local Warehouse=require(script.Parent.WarehouseChapter)
 local Escape={}
 function Escape.prepare(ctx)
  local props=Props.build(ctx)
@@ -30,6 +31,7 @@ function Escape.start(ctx)
   return ui.make("TextLabel",{Name=name,Text=text,Position=pos,Size=size,BackgroundColor3=C(20,21,19),BackgroundTransparency=.23,TextColor3=C(245,235,209),TextSize=fontSize,TextWrapped=true,Font=Enum.Font.SpecialElite,BorderSizePixel=0},hud)
  end
  local objective=label("Mission objective","Leave your payment on the table and step outside.",UDim2.fromScale(.035,.14),UDim2.new(.45,0,0,66),18)
+ local pursuit=label("Pursuit status","",UDim2.new(.035,0,.14,72),UDim2.new(.43,0,0,34),16); pursuit.Visible=false
  local subtitle=label("Escape dialogue","",UDim2.fromScale(.08,.73),UDim2.fromScale(.84,.13),20); subtitle.Visible=false
  local hint=label("Interaction hint","E / X · Leave payment",UDim2.fromScale(.32,.88),UDim2.fromScale(.36,.065),18)
  local bars={}
@@ -80,10 +82,12 @@ function Escape.start(ctx)
  local car={x=290,z=140,yaw=-math.pi/2,speed=32}
  local mission={clearTime=0,bustTime=0,lost=false}
  local resultPanel
+ local warehouse
+ local function isDriving() return state.phase=="drive" or (state.phase=="warehouse" and warehouse and warehouse.driving()) end
  local function positionVehicle(vehicle,pos,angle)
   vehicle:PivotTo(CFrame.new(origin+pos)*CFrame.Angles(0,angle,0))
   if vehicle==ext.van then
-   if lastVanPosition then wheelRoll+=math.min(20,(pos-lastVanPosition).Magnitude)/1.25*(state.phase=="drive" and car.speed<0 and -1 or 1) end
+   if lastVanPosition then wheelRoll+=math.min(20,(pos-lastVanPosition).Magnitude)/1.25*(isDriving() and car.speed<0 and -1 or 1) end
    lastVanPosition=pos
    for i,w in ext.vehicle.wheels do w.model:PivotTo(vehicle:GetPivot()*wheelOffsets[i]*CFrame.Angles(wheelRoll,0,0)) end
   end
@@ -125,7 +129,7 @@ function Escape.start(ctx)
   local seat=ext.van:GetPivot()*CFrame.new(-1.4,3.1,-3.8)
   hero.rig:PivotTo(seat)
   Motion.joint(hero,"Waist",CFrame.Angles(-.07,0,0)); Motion.joint(hero,"Neck",CFrame.Angles(.03,0,0))
-  local steering=state.phase=="drive" and (car.steer or 0) or 0
+  local steering=isDriving() and (car.steer or 0) or 0
   for _,side in {"Left","Right"} do
    local sign=side=="Left" and -1 or 1
    ctx.setJoint(hero,side.."Hip",CFrame.Angles(1.35,0,0)); ctx.setJoint(hero,side.."Knee",CFrame.Angles(-1.35,0,0))
@@ -150,6 +154,7 @@ function Escape.start(ctx)
   subtitle.Text=Rules.lines[name] or ""; subtitle.Visible=subtitle.Text~=""; audio.say(name)
  end
  local function interact()
+  if state.phase=="warehouse" then warehouse.interact(); return end
   if Rules.interact(state) then
    hint.Text="Leaving payment…"
    for _,p in hero.rig:GetChildren() do if p:IsA("BasePart") and (p.Name=="Utensil handle" or p.Name=="Fork shoulder" or p.Name=="Held fork tine") then p:Destroy() end end
@@ -167,7 +172,7 @@ function Escape.start(ctx)
   return function(s) held[name]=s==Enum.UserInputState.Begin or s==Enum.UserInputState.Change end
  end
  local function toggleLights()
-  if state.phase~="drive" then return end
+  if not isDriving() then return end
   lightsOn=not lightsOn
   for _,light in ext.vehicle.lights do
    light.beam.Enabled=lightsOn; light.lens.Material=lightsOn and Enum.Material.Neon or Enum.Material.Glass
@@ -176,7 +181,7 @@ function Escape.start(ctx)
   Actions:SetTitle("HighwayFour_Lights",lightsOn and "Lights ON" or "Lights OFF")
  end
  local function toggleWipers()
-  if state.phase~="drive" then return end
+  if not isDriving() then return end
   wipersOn=not wipersOn
   ext.vehicle.switches.wipers.Color=wipersOn and C(220,208,171) or C(112,105,87)
   Actions:SetTitle("HighwayFour_Wipers",wipersOn and "Wipers ON" or "Wipers OFF")
@@ -184,7 +189,7 @@ function Escape.start(ctx)
  bind("Lights",{Enum.KeyCode.L,Enum.KeyCode.DPadLeft},function(s) if s==Enum.UserInputState.Begin then toggleLights() end end,true,"Lights ON",UDim2.fromScale(.61,.15))
  bind("Wipers",{Enum.KeyCode.B,Enum.KeyCode.DPadRight},function(s) if s==Enum.UserInputState.Begin then toggleWipers() end end,true,"Wipers OFF",UDim2.fromScale(.76,.15))
  table.insert(connections,Input.InputBegan:Connect(function(input,processed)
-  if processed or state.phase~="drive" or not firstPerson or input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
+  if processed or not isDriving() or not firstPerson or input.UserInputType~=Enum.UserInputType.MouseButton1 then return end
   local ray=camera:ScreenPointToRay(input.Position.X,input.Position.Y)
   local filter=RaycastParams.new(); filter.FilterType=Enum.RaycastFilterType.Include
   filter.FilterDescendantsInstances={ext.vehicle.switches.lights,ext.vehicle.switches.wipers}
@@ -196,21 +201,22 @@ function Escape.start(ctx)
  bind("Reverse",{Enum.KeyCode.S,Enum.KeyCode.Down},key("reverse"),true,"▼",UDim2.fromScale(.16,.87))
  bind("Left",{Enum.KeyCode.A,Enum.KeyCode.Left},key("left"),true,"◀",UDim2.fromScale(.07,.79))
  bind("Right",{Enum.KeyCode.D,Enum.KeyCode.Right},key("right"),true,"▶",UDim2.fromScale(.25,.79))
+ bind("Sprint",{Enum.KeyCode.LeftShift,Enum.KeyCode.ButtonL3},key("sprint"),true,"Run",UDim2.fromScale(.7,.84))
  bind("Brake",{Enum.KeyCode.Space,Enum.KeyCode.ButtonL2},key("brake"),true,"Brake",UDim2.fromScale(.84,.84))
  bind("Throttle",{Enum.KeyCode.ButtonR2},key("forward"),false)
  bind("Interact",{Enum.KeyCode.E,Enum.KeyCode.ButtonX},function(s) if s==Enum.UserInputState.Begin then interact() end end,true,"Pay",UDim2.fromScale(.84,.69))
- bind("View",{Enum.KeyCode.V,Enum.KeyCode.ButtonR3},function(s) if s==Enum.UserInputState.Begin and (state.phase=="walk" or state.phase=="drive") then firstPerson=not firstPerson end end,true,"View",UDim2.fromScale(.84,.54))
+ bind("View",{Enum.KeyCode.V,Enum.KeyCode.ButtonR3},function(s) if s==Enum.UserInputState.Begin and (state.phase=="walk" or state.phase=="drive" or state.phase=="warehouse") then firstPerson=not firstPerson end end,true,"View",UDim2.fromScale(.84,.54))
  bind("MoveStick",{Enum.KeyCode.Thumbstick1},function(s,input) moveStick=s==Enum.UserInputState.End and V(0,0,0) or input.Position end,false)
  bind("LookStick",{Enum.KeyCode.Thumbstick2},function(s,input) lookStick=s==Enum.UserInputState.End and V(0,0,0) or input.Position end,false)
  table.insert(connections,Input.InputBegan:Connect(function(input,processed) if not processed and input.UserInputType==Enum.UserInputType.MouseButton2 then looking=true end end))
  table.insert(connections,Input.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton2 then looking=false end end))
  table.insert(connections,Input.InputChanged:Connect(function(input,processed)
-  if state.phase~="walk" and state.phase~="drive" then return end
-  if input.UserInputType==Enum.UserInputType.MouseWheel and state.phase=="drive" then driveZoom=math.clamp(driveZoom-input.Position.Z*2,11,32) end
+  if state.phase~="walk" and state.phase~="drive" and state.phase~="warehouse" then return end
+  if input.UserInputType==Enum.UserInputType.MouseWheel and isDriving() then driveZoom=math.clamp(driveZoom-input.Position.Z*2,11,32) end
   local dragging=input.UserInputType==Enum.UserInputType.MouseMovement and (looking or firstPerson)
    or (input.UserInputType==Enum.UserInputType.Touch and not processed and input.Position.X>root.AbsoluteSize.X*.4)
   if dragging then
-   if state.phase=="drive" then driveOrbit-=input.Delta.X*.004; drivePitch=math.clamp(drivePitch+input.Delta.Y*.003,-.22,1.1)
+   if isDriving() then driveOrbit-=input.Delta.X*.004; drivePitch=math.clamp(drivePitch+input.Delta.Y*.003,-.22,1.1)
    else yaw-=input.Delta.X*.004; pitch=math.clamp(pitch+input.Delta.Y*.003,-.6,.65) end
   end
  end))
@@ -219,7 +225,8 @@ function Escape.start(ctx)
   for _,c in connections do c:Disconnect() end
   for _,name in bound do Actions:UnbindAction(name) end
   Input.MouseBehavior=originalMouse; Input.MouseIconEnabled=originalIcon
-  for _,p in hero.rig:GetDescendants() do if p:IsA("BasePart") then p.LocalTransparencyModifier=0 end end
+  Motion.visibility(hero,false)
+  if warehouse then warehouse.destroy() end
   mirrors.destroy(); prepared.destroy(); hud:Destroy()
  end
  local function startDrive()
@@ -228,16 +235,38 @@ function Escape.start(ctx)
   state.phase="drive"; state.time=0; title.Visible=false; subtitle.Visible=false
   objective.Visible=true; objective.Text="Lose the remaining local patrol units and reach the safehouse."
   hint.Text="WASD / stick · Drive   V · Cabin   L · Lights   B · Wipers"
+  Actions:SetTitle("HighwayFour_Interact","Use")
   audio.cue("engine"); audio.cue("siren")
  end
- local function finishMission(result)
+ local function finishMission(result,retry)
   audio.stop("siren"); audio.stop("engine"); state.phase="result"
+  Input.MouseBehavior=originalMouse; Input.MouseIconEnabled=originalIcon; Motion.visibility(hero,false)
+  pursuit.Visible=false; objective.Visible=false; hint.Visible=false
   resultPanel=ui.make("Frame",{Size=UDim2.fromScale(.64,.28),Position=UDim2.fromScale(.18,.3),BackgroundColor3=C(23,24,21),BackgroundTransparency=.08,ZIndex=35},hud)
-  ui.make("TextLabel",{Size=UDim2.fromScale(1,.55),BackgroundTransparency=1,Text=result=="safe" and "SAFEHOUSE REACHED\nChapter one complete" or "INTERCEPTED\nKeep moving to break pursuit.",Font=Enum.Font.SpecialElite,TextColor3=C(241,223,179),TextSize=24,TextWrapped=true,ZIndex=36},resultPanel)
-  local button=ui.make("TextButton",{Size=UDim2.fromScale(.8,.28),Position=UDim2.fromScale(.1,.62),Text=result=="safe" and "Return to menu" or "Retry escape",Font=Enum.Font.SpecialElite,TextSize=20,TextColor3=C(241,223,179),BackgroundColor3=C(63,57,42),ZIndex=36},resultPanel)
+  ui.make("TextLabel",{Size=UDim2.fromScale(1,.55),BackgroundTransparency=1,Text=result=="safe" and "CASH SECURED · SEARCH EVADED\nChapter one complete" or (result=="search" and "THE PATROL FOUND THE VAN\nSecure the cargo, doors and lights before they return." or "INTERCEPTED\nKeep moving to break pursuit."),Font=Enum.Font.SpecialElite,TextColor3=C(241,223,179),TextSize=24,TextWrapped=true,ZIndex=36},resultPanel)
+  local button=ui.make("TextButton",{Size=UDim2.fromScale(.8,.28),Position=UDim2.fromScale(.1,.62),Text=result=="safe" and "Return to menu" or (retry and "Retry warehouse checkpoint" or "Retry escape"),Font=Enum.Font.SpecialElite,TextSize=20,TextColor3=C(241,223,179),BackgroundColor3=C(63,57,42),ZIndex=36},resultPanel)
   table.insert(connections,button.Activated:Connect(function()
-   if result=="safe" then ctx.onFinish() else resultPanel:Destroy(); resultPanel=nil; startDrive() end
+   if result=="safe" then ctx.onFinish() else resultPanel:Destroy(); resultPanel=nil; if retry then state.phase="warehouse"; retry() else startDrive() end end
   end))
+ end
+ local function startWarehouse()
+  state.phase="warehouse"; state.time=0; firstPerson=false; yaw=math.pi; pitch=.12
+  pursuit.Visible=false; Actions:SetTitle("HighwayFour_Interact","Use")
+  Input.MouseBehavior=originalMouse; Input.MouseIconEnabled=true
+  warehouse=Warehouse.create({origin=origin,ext=ext,props=props,hero=hero,car=car,ui=ui,hud=hud,
+   audio=audio,objective=objective,hint=hint,subtitle=subtitle,bars=bars,reducedMotion=ctx.reducedMotion,
+   positionVehicle=positionVehicle,animateCruiser=animateCruiser,view=view,pose=pose,doors=doors,seatHero=seatHero,seatedCrew=seatedCrew,
+   complete=function() finishMission("safe") end,failed=function(retry) finishMission("search",retry) end,
+   vehicleCabin=function(dt,input)
+    for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,-(car.wheelAngle or 0),0)*CFrame.Angles(wheelRoll,0,0)) end end
+    ext.vehicle.needle.Rotation=-110+math.min(1,math.abs(car.speed)/78)*220
+    ext.vehicle.wheel:PivotTo(ext.van:GetPivot()*steeringOffset*CFrame.Angles(0,0,-(car.steer or 0)*1.15))
+    if wipersOn or wiperPhase>0 then wiperPhase+=dt*1.2; if wiperPhase>=1 then wiperPhase=wipersOn and wiperPhase%1 or 0 end end
+    local sweep=-.65+(1-math.cos(wiperPhase*math.pi*2))*.65
+    for i,wiper in ext.vehicle.wipers do wiper:PivotTo(ext.van:GetPivot()*wiperOffsets[i]*CFrame.Angles(0,0,sweep)) end
+    mirrors.update(dt,input.firstPerson)
+   end,
+  })
  end
  local function shotEnter(name)
   for _,bar in bars do bar.Visible=true end
@@ -330,11 +359,9 @@ function Escape.start(ctx)
   elseif name=="burnout" then
    seatHero(); view(V(54,1.3,-58),V(62,1.7,-53),66,dt,false)
   elseif name=="escape" then
-   local pos,angle
-   if u<.3 then pos=V(60,.7,-53):Lerp(V(68,.7,-35),u/.3); angle=-math.pi+math.pi/2*(1-u/.3)
-   elseif u<.75 then pos=V(68,.7,-35):Lerp(V(68,.7,140),(u-.3)/.45); angle=math.pi
-   else pos=V(68,.7,140):Lerp(V(180,.7,140),(u-.75)/.25); angle=-math.pi/2 end
-   positionVehicle(ext.van,pos,angle); seatHero(); for _,person in props.crew do seatedCrew(person) end
+   local route=Rules.escapeRoute(u); local pos=V(route.x,.7,route.z)
+   positionVehicle(ext.van,pos,route.yaw); seatHero(); for _,person in props.crew do seatedCrew(person) end
+   for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,route.steer,0)*CFrame.Angles(wheelRoll,0,0)) end end
    view(V(84,3,120),pos+V(0,2,0),65,dt,false)
   elseif name=="bill" then
    positionVehicle(ext.van,V(180+u*110,.7,140),-math.pi/2); seatHero(); for _,person in props.crew do seatedCrew(person) end
@@ -385,20 +412,22 @@ function Escape.start(ctx)
    local side=(held.right and 1 or 0)-(held.left and 1 or 0)+moveStick.X
    local direction=V(-math.sin(yaw)*forward+math.cos(yaw)*side,0,-math.cos(yaw)*forward-math.sin(yaw)*side)
    if direction.Magnitude>1 then direction=direction.Unit end
-   local nextPos=heroPos+direction*dt*13
+   local nextPos=heroPos+direction*dt*(held.sprint and 19 or 13)
    if Rules.walkable(nextPos.X,heroPos.Z) then heroPos=V(nextPos.X,3,heroPos.Z) end
    if Rules.walkable(heroPos.X,nextPos.Z) then heroPos=V(heroPos.X,3,nextPos.Z) end
    local angle=direction.Magnitude>.1 and math.atan2(-direction.X,-direction.Z) or yaw
    pose(hero,heroPos,angle,direction.Magnitude,false)
    if heroPos.Z>29 then ext.door:PivotTo(doorBase*CFrame.Angles(0,-math.pi/2,0)) end
-   for _,p in hero.rig:GetDescendants() do if p:IsA("BasePart") then p.LocalTransparencyModifier=firstPerson and 1 or 0 end end
+   Motion.visibility(hero,firstPerson)
    Input.MouseBehavior=firstPerson and Enum.MouseBehavior.LockCenter or (looking and Enum.MouseBehavior.LockCurrentPosition or originalMouse); Input.MouseIconEnabled=not firstPerson
    local target=heroPos+V(0,1.5,0)
-   if firstPerson then view(target,target+V(-math.sin(yaw),-pitch,-math.cos(yaw)),70,dt,false)
+   if firstPerson then
+    Motion.flush(hero); target=hero.rig.Head.CFrame.Position-origin+V(0,.1,0)
+    view(target,target+V(-math.sin(yaw),-pitch,-math.cos(yaw)),70,dt,false)
    else local cam=target+V(math.sin(yaw)*8,2+pitch*5,math.cos(yaw)*8); cam=V(math.clamp(cam.X,-35,34),cam.Y,math.clamp(cam.Z,-33,47)); view(cam,target,64,dt,true) end
    if heroPos.Z>=44 and Rules.exit(state) then
     audio.cue("bell"); subtitle.Visible=false; Input.MouseBehavior=originalMouse; Input.MouseIconEnabled=originalIcon
-    for _,p in hero.rig:GetDescendants() do if p:IsA("BasePart") then p.LocalTransparencyModifier=0 end end
+    Motion.visibility(hero,false)
    end
   elseif phase=="cinematic" then
    Lighting.ClockTime=12+5.5*math.clamp((state.shot-1+state.time/2)/3,0,1)
@@ -409,15 +438,18 @@ function Escape.start(ctx)
    if Rules.drive(car,throttle,steer,held.brake,dt) then shake=.015 end
    positionVehicle(ext.van,V(car.x,.7,car.z),car.yaw); seatHero(); for _,person in props.crew do seatedCrew(person) end
    local nearest=math.huge
-   for _,police in props.police do
+   for i,police in props.police do
     if not mission.lost then
      local distance=Rules.pursue(police,car,dt)
      positionVehicle(police.model,V(police.x,.7,police.z),police.yaw)
      animateCruiser(police,police.steer)
+     pose(props.officers[i],(police.model:GetPivot()*CFrame.new(-.9,1.65,.1)).Position-origin,police.yaw,0,true)
      nearest=math.min(nearest,distance)
     end
    end
    local result=Rules.mission(mission,car,nearest,dt)
+   pursuit.Visible=true
+   pursuit.Text=mission.lost and "SEARCH AREA CLEARED" or (mission.bustTime>0 and string.format("INTERCEPTION · MOVE!  %.1fs",4-mission.bustTime) or (mission.clearTime>0 and string.format("BREAKING CONTACT  %d%%",math.floor(mission.clearTime/4*100)) or "PATROL IN PURSUIT · KEEP MOVING"))
    if mission.lost then audio.stop("siren"); objective.Text="Patrol lost. Reach OLD MOTOR DEPOT and stop in the driveway." end
    local distance=math.floor(math.sqrt((car.x-Rules.destination.x)^2+(car.z-Rules.destination.z)^2))
    hint.Text=string.format("%d mph  •  SAFEHOUSE %d studs %s  •  V: view · Drag: look · L: lights · B: wipers",math.floor(math.abs(car.speed)*.65),distance,car.x<900 and "→ WEST" or "↑ DRIVEWAY")
@@ -427,9 +459,7 @@ function Escape.start(ctx)
    for i,w in ext.vehicle.wheels do if w.front then w.model:PivotTo(ext.van:GetPivot()*wheelOffsets[i]*CFrame.Angles(0,-car.wheelAngle,0)*CFrame.Angles(wheelRoll,0,0)) end end
    ext.vehicle.needle.Rotation=-110+math.min(1,math.abs(car.speed)/78)*220
    ext.vehicle.wheel:PivotTo(ext.van:GetPivot()*steeringOffset*CFrame.Angles(0,0,-(car.steer or 0)*1.15))
-   for _,p in hero.rig:GetDescendants() do
-    if p:IsA("BasePart") then p.LocalTransparencyModifier=firstPerson and (p.Name=="Head" or p:IsDescendantOf(hero.rig.Head) or p.Name:find("hat") or p.Name:find("Hat") or p.Name:find("brim") or p.Name:find("crown")) and 1 or 0 end
-   end
+   Motion.visibility(hero,firstPerson)
    -- Park at the end of a complete wipe, rather than freezing a blade mid-screen.
    if wipersOn or wiperPhase>0 then
     wiperPhase+=dt*1.2
@@ -452,7 +482,15 @@ function Escape.start(ctx)
     local radius=driveZoom*math.cos(drivePitch)
     view(target+V(math.sin(angle)*radius,math.max(1.2,math.sin(drivePitch)*driveZoom),math.cos(angle)*radius),target,ctx.reducedMotion() and 65 or 65+math.abs(car.speed)*.08,dt,true)
    end
-   if result then finishMission(result) end
+   if result=="safe" then startWarehouse() elseif result then finishMission(result) end
+  elseif phase=="warehouse" then
+   if warehouse.driving() then driveOrbit-=lookStick.X*dt*2; drivePitch=math.clamp(drivePitch-lookStick.Y*dt,-.22,1.1)
+   else yaw-=lookStick.X*dt*2; pitch=math.clamp(pitch-lookStick.Y*dt,-.6,.65) end
+   Input.MouseBehavior=firstPerson and Enum.MouseBehavior.LockCenter or (looking and Enum.MouseBehavior.LockCurrentPosition or originalMouse)
+   Input.MouseIconEnabled=not firstPerson
+   warehouse.update(dt,{forward=math.clamp((held.forward and 1 or 0)-(held.reverse and 1 or 0)+moveStick.Y,-1,1),
+    side=math.clamp((held.right and 1 or 0)-(held.left and 1 or 0)+moveStick.X,-1,1),brake=held.brake,sprint=held.sprint,
+    yaw=yaw,pitch=pitch,driveOrbit=driveOrbit,drivePitch=drivePitch,driveZoom=driveZoom,firstPerson=firstPerson})
   end
   for _,person in ctx.actors do Motion.flush(person) end
   for _,person in props.crew do Motion.flush(person) end

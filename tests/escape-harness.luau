@@ -14,6 +14,17 @@ check(not Rules.exit(s),"cinematic cannot retrigger itself")
 local board
 for _,shot in Rules.shots do if shot.name=="board" then board=shot.duration end end
 check(board==1.5,"crew boarding lasts exactly 1.5 seconds")
+local previous=Rules.escapeRoute(0)
+local tangent=true
+for frame=1,1000 do
+ local current=Rules.escapeRoute(frame/1000)
+ local dx,dz=current.x-previous.x,current.z-previous.z
+ local length=math.sqrt(dx*dx+dz*dz)
+ if length>.001 and (dx*(-math.sin(current.yaw))+dz*(-math.cos(current.yaw)))/length<.999 then tangent=false end
+ previous=current
+end
+check(tangent,"getaway van faces its motion through both cinematic road turns")
+check(math.abs(previous.x-180)<.001 and math.abs(previous.z-140)<.001,"curved getaway path meets the following banknote shot without a position jump")
 Rules.advance(s,100); check(s.phase=="drive","entire cinematic hands off into driving")
 check(Rules.walkable(0,40) and not Rules.walkable(5,40) and not Rules.walkable(-30,0),"walking respects doorway and booth boundaries")
 check(Rules.drivable(920,163) and not Rules.drivable(850,175),"safehouse driveway is reachable without driving through neighboring buildings")

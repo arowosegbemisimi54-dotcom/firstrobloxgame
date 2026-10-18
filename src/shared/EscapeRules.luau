@@ -8,6 +8,9 @@ Rules.shots={
  {name="escape",duration=4}, {name="bill",duration=4}, {name="title",duration=3},
 }
 Rules.lines={
+ depot="That's the place. Open the loading bay. We need the van out of sight.",
+ unpack="Two bags each. Take them to the pallet. The search patrol will circle back.",
+ shutters="Cash is inside. Close the doors and kill the lights.",
  waitress="Did he say... Highway 4? Hey, hon, maybe we should lock the front—",
  unload="Move, move, MOVE! Ditch the truck! The cops have a visual on this rig!",
  board="Bag's secured! Get in, let's go!",
@@ -38,6 +41,22 @@ end
 function Rules.walkable(x,z)
  return (x>=-22 and x<=8 and z>=-31 and z<=32) or (math.abs(x)<=2.2 and z>=31 and z<=48)
 end
+-- Tangent escape path: pull away, turn into the service lane, then join Highway 4.
+function Rules.escapeRoute(progress)
+ local radius=14
+ local arc=radius*math.pi/2
+ local distance=(arc*2+165+92)*math.clamp(progress,0,1)^1.35
+ local x,z,dx,dz,steer
+ if distance<arc then
+  local a=distance/radius
+  x=60+radius*math.sin(a); z=-39-radius*math.cos(a); dx=math.cos(a); dz=math.sin(a); steer=.4
+ elseif distance<arc+165 then x=74; z=-39+distance-arc; dx=0; dz=1; steer=0
+ elseif distance<arc*2+165 then
+  local a=(distance-arc-165)/radius
+  x=88-radius*math.cos(a); z=126+radius*math.sin(a); dx=math.sin(a); dz=math.cos(a); steer=-.4
+ else x=88+distance-arc*2-165; z=140; dx=1; dz=0; steer=0 end
+ return {x=x,z=z,yaw=math.atan2(-dx,-dz),steer=steer}
+end
 function Rules.drivable(x,z)
  -- Expanded parked-car footprints include clearance for the panel van.
  for _,parked in {{-68,62},{-36,109},{12,109},{60,62}} do
@@ -48,7 +67,7 @@ function Rules.drivable(x,z)
   or (x>=-107 and x<=80 and z>=44 and z<=123)
   or (x>=900 and x<=940 and z>=130 and z<=165)
 end
-function Rules.drive(car,throttle,steer,brake,dt)
+function Rules.drive(car,throttle,steer,brake,dt,allowed)
  dt=math.clamp(dt,0,.05)
  local acceleration=throttle*32-car.speed*(brake and 5 or (throttle==0 and 1.2 or .12))
  car.speed=math.clamp(car.speed+acceleration*dt,-22,78)
@@ -63,7 +82,7 @@ function Rules.drive(car,throttle,steer,brake,dt)
  car.travel=(car.travel or 0)+math.abs(car.speed)*dt
  local x=car.x-math.sin(car.yaw)*car.speed*dt
  local z=car.z-math.cos(car.yaw)*car.speed*dt
- local collision=not Rules.drivable(x,z)
+ local collision=not (allowed or Rules.drivable)(x,z)
  if collision then car.speed=-car.speed*.2 else car.x=x; car.z=z end
  return collision
 end

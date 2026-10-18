@@ -20,15 +20,27 @@ local Vector3=Vector
 local Vector2={new=function(x,y) return {X=x,Y=y} end}
 local transform={}
 transform.__index=transform
-function transform.__mul(a,b) return setmetatable({Position=a.Position,left=a,right=b},transform) end
-function transform:ToObjectSpace(other) return other end
+local function rotate(r,v) return Vector.new(r[1]*v.X+r[2]*v.Y+r[3]*v.Z,r[4]*v.X+r[5]*v.Y+r[6]*v.Z,r[7]*v.X+r[8]*v.Y+r[9]*v.Z) end
+local function cf(x,y,z) return setmetatable({Position=type(x)=="table" and x or Vector.new(x or 0,y or 0,z or 0),r={1,0,0,0,1,0,0,0,1}},transform) end
+function transform.__mul(a,b)
+ local r={}
+ for y=0,2 do for x=0,2 do r[y*3+x+1]=0; for k=0,2 do r[y*3+x+1]+=a.r[y*3+k+1]*b.r[k*3+x+1] end end end
+ local result=cf(a.Position+rotate(a.r,b.Position)); result.r=r; result.left=a; result.right=b; return result
+end
+function transform:Inverse()
+ local r={self.r[1],self.r[4],self.r[7],self.r[2],self.r[5],self.r[8],self.r[3],self.r[6],self.r[9]}
+ local result=cf(rotate(r,-self.Position)); result.r=r; return result
+end
+function transform:ToObjectSpace(other) return self:Inverse()*other end
 transform.LookVector=Vector.new(0,0,-1)
-function transform:VectorToWorldSpace(v) return v end
-local function cf(position) return setmetatable({Position=type(position)=="table" and position or Vector.new(0,0,0)},transform) end
+function transform:VectorToWorldSpace(v) return rotate(self.r,v) end
 function transform:Lerp(other) return other end
 transform.Rotation=cf()
 local CFrame={new=cf,lookAt=cf,fromMatrix=cf}
-function CFrame.Angles(x,y,z) local t=cf(); t.angles={x,y,z}; return t end
+function CFrame.Angles(x,y,z)
+ local cx,sx,cy,sy,cz,sz=math.cos(x),math.sin(x),math.cos(y),math.sin(y),math.cos(z),math.sin(z)
+ local t=cf(); t.angles={x,y,z}; t.r={cy*cz,-cy*sz,sy,cx*sz+sx*sy*cz,cx*cz-sx*sy*sz,-sx*cy,sx*sz-cx*sy*cz,sx*cz+cx*sy*sz,cx*cy}; return t
+end
 local color={Lerp=function(self) return self end}
 local Color3={new=function() return color end,fromRGB=function() return color end}
 local UDim={new=function(scale,offset) return {Scale=scale,Offset=offset} end}
@@ -141,7 +153,7 @@ function actionService:UnbindAction(name) actions[name]=nil end
 function actionService:SetTitle() end
 function actionService:SetPosition() end
 local inputService={InputBegan=signal(),InputEnded=signal(),InputChanged=signal(),MouseBehavior="Default",MouseIconEnabled=true}
-local services={ContentProvider={PreloadAsync=function(_,items) for _,item in items do item.IsLoaded=true; item.TimeLength=42.866938 end end},ContextActionService=actionService,UserInputService=inputService,Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit",EscapeRules="escapeRules"} end}}
+local services={ContentProvider={PreloadAsync=function(_,items) for _,item in items do item.IsLoaded=true; item.TimeLength=42.866938 end end},ContextActionService=actionService,UserInputService=inputService,Lighting=lighting,Players=Players,RunService={RenderStepped=render},ReplicatedStorage={WaitForChild=function() return {DinerTimeline="timeline",WesternOutfit="outfit",EscapeRules="escapeRules",WarehouseRules="warehouseRules"} end}}
 local game={GetService=function(_,name) return services[name] end}
 local workspace=Instance.new("Workspace")
 workspace.CurrentCamera={CFrame=cf(),FieldOfView=65}
@@ -151,7 +163,7 @@ end)()
 local Paintings=(function()
 -- INSERT_PAINTINGS
 end)()
-local script={Parent={GetawayVan="van",VanMirrors="mirrors",EscapeLandscape="escapeLandscape",CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
+local script={Parent={WarehouseSet="warehouseSet",WarehouseChapter="warehouseChapter",GetawayVan="van",VanMirrors="mirrors",EscapeLandscape="escapeLandscape",CharacterMotion="motion",DinerEscape="escape",EscapeAudio="escapeAudio",EscapeProps="escapeProps",DinerExterior="exterior",VintageCars="cars",DinerAudio="audio",DinerBroadcast="broadcast",DinerArt="art",DinerCast="cast",LoadingLandscape="landscape",DinerPaintings="paintings"}}
 local modules={timeline=Timeline,paintings=Paintings}
 local function require(key) return assert(modules[key],"Missing module "..tostring(key)) end
 local Art=(function()
@@ -183,6 +195,9 @@ end)()
 modules.van=(function()
 -- INSERT_VAN
 end)()
+modules.warehouseSet=(function()
+-- INSERT_WAREHOUSE_SET
+end)()
 modules.escapeLandscape=(function()
 -- INSERT_ESCAPE_LANDSCAPE
 end)()
@@ -204,11 +219,14 @@ end)()
 modules.motion=(function()
 -- INSERT_MOTION
 end)()
+modules.warehouseRules=(function()
+-- INSERT_WAREHOUSE_RULES
+end)()
+modules.warehouseChapter=(function()
+-- INSERT_WAREHOUSE_CHAPTER
+end)()
 modules.escape=(function()
 -- INSERT_ESCAPE
-end)()
-modules.motion=(function()
--- INSERT_MOTION
 end)()
 local Diner=(function()
 -- INSERT_DINER
@@ -269,7 +287,11 @@ check(counts["Ketchup bottle"]==7 and counts["Salt shaker"]==7,"all booth tables
 local callbacks={}
 local ui={}
 function ui.make(kind,properties,parent)
- local obj=Instance.new(kind); for key,value in properties do obj[key]=value end; obj.Parent=parent; return obj
+ local obj=Instance.new(kind); for key,value in properties do obj[key]=value end; obj.Parent=parent
+ if kind=="TextButton" then obj.Activated={Connect=function(_,callback)
+  callbacks[obj.Text]=callback; return {Disconnect=function() if callbacks[obj.Text]==callback then callbacks[obj.Text]=nil end end}
+ end} end
+ return obj
 end
 function ui.text(parent,text,pos,size) return ui.make("TextLabel",{Text=text,Position=pos,Size=size},parent) end
 function ui.navButton(_,name,_,_,callback) callbacks[name]=callback end
@@ -379,6 +401,11 @@ inputService.InputChanged.callback({UserInputType=Enum.UserInputType.MouseMoveme
 frames(1)
 check(workspace.CurrentCamera.CFrame~=beforeLook,"driving camera responds to mouse orbit")
 press("View",true); frames(3)
+local visibleHands=false
+for _,obj in objects do if not obj.destroyed and obj.Name=="Main character" then
+ visibleHands=obj.Head.LocalTransparencyModifier==1 and obj.LeftHand.LocalTransparencyModifier==0 and obj.RightHand.LocalTransparencyModifier==0
+end end
+check(visibleHands,"first-person camera hides the head while retaining the player's hands")
 local mirrorsVisible=0
 for _,obj in objects do if obj.ClassName=="ViewportFrame" and obj.Visible and obj.Parent and obj.Parent.Name=="Live rear-view mirror" then mirrorsVisible+=1 end end
 check(mirrorsVisible==2,"cabin view activates both rearward patrol displays")
@@ -402,6 +429,67 @@ press("Forward",true); frames(240); press("Forward",false)
 local lost=false
 for _,obj in objects do if obj.Name=="Mission objective" and obj.Text and obj.Text:find("Patrol lost") then lost=true end end
 check(lost,"driving away at speed loses the pursuing patrol")
+-- Put the current car at the warehouse entrance, then exercise actual chapter
+-- input, camera handoff, prop animation and retry through the render callback.
+local originalMission=modules.escapeRules.mission
+local depotCar,arrivalFrames
+arrivalFrames=0
+modules.escapeRules.mission=function(_,car)
+ depotCar=car; car.x=920; car.z=163; car.yaw=math.pi; car.speed=0; car.steer=0
+ arrivalFrames+=1
+ return arrivalFrames>=2 and "safe" or nil
+end
+frames(2); modules.escapeRules.mission=originalMission
+local heroPosition
+local originalPose=modules.motion.pose
+modules.motion.pose=function(person,origin,pos,...)
+ if person.rig.Name=="Main character" then heroPosition=pos end
+ return originalPose(person,origin,pos,...)
+end
+frames(66)
+local function walkTo(x,z)
+ local reached=false
+ for _=1,300 do
+  assert(heroPosition,"warehouse did not pose the player")
+  local dx,dz=x-heroPosition.X,z-heroPosition.Z
+  if math.sqrt(dx*dx+dz*dz)<.65 then reached=true; break end
+  -- Arrival sets the freely rotatable on-foot camera to face +Z.
+  press("Left",dx>.25); press("Right",dx<-.25)
+  press("Forward",dz>.25); press("Reverse",dz<-.25)
+  frames(1)
+ end
+ for _,name in {"Left","Right","Forward","Reverse"} do press(name,false) end
+ assert(reached,string.format("blocked warehouse route to %.1f,%.1f from %.1f,%.1f",x,z,heroPosition.X,heroPosition.Z))
+end
+walkTo(925,177); walkTo(910,179); press("Interact",true); frames(28)
+local opened=0
+for _,obj in objects do if not obj.destroyed and obj.Name=="Sliding loading door" and obj.pivots then opened+=1 end end
+check(opened==2,"warehouse latch animates both physical loading doors")
+walkTo(925,177); walkTo(925,167); press("Interact",true); frames(22)
+press("Forward",true)
+for _=1,200 do if depotCar.z>=198 then break end; frames(1) end
+press("Forward",false); press("Brake",true); frames(24); press("Brake",false)
+check(modules.warehouseRules.parked(depotCar),"player can drive from the driveway through the bay and brake in the marked parking zone")
+press("Interact",true); frames(22)
+frames(1420)
+check(callbacks["Retry warehouse checkpoint"]~=nil,"exposed warehouse produces its own retry action")
+callbacks["Retry warehouse checkpoint"](); frames(2)
+check(depotCar.z==202 and depotCar.speed==0,"warehouse retry resumes beside the parked van without replaying the diner")
+for _=1,2 do
+ walkTo(925,194); walkTo(922,194); press("Interact",true); frames(18)
+ walkTo(930,194); walkTo(932,207); press("Interact",true); frames(18)
+end
+frames(40) -- second crew member finishes the staged carry
+local secured=0
+for _,obj in objects do if not obj.destroyed and obj.Name:find("Secured canvas bag ") and obj.Transparency==0 then secured+=1 end end
+check(secured==4,"two player deliveries and two crew deliveries place all four physical duffels on the pallet")
+walkTo(930,216); walkTo(911,216); walkTo(911,186); press("Interact",true); frames(32)
+walkTo(930,186); press("Interact",true); press("View",true); frames(164)
+local complete=false
+for _,obj in objects do if not obj.destroyed and obj.Text and obj.Text:find("CASH SECURED") then complete=true end end
+check(complete,"full warehouse gameplay and final patrol shots complete the chapter")
+check(inputService.MouseBehavior=="Default" and inputService.MouseIconEnabled,"finishing in first person releases the mouse for result buttons")
+modules.motion.pose=originalPose
 stopNatural(); stopNatural()
 local mirrorsClean=true
 for _,obj in objects do if obj.Name=="Live rear-view mirror" and not obj.destroyed then mirrorsClean=false end end

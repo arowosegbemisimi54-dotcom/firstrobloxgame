@@ -46,7 +46,7 @@ function Audio.create(parent,lines)
   end
  end
  -- Built-in UI/impact cues remain audible without external asset permissions.
- for name,spec in {bell={"electronicpingshort.wav",1.7,.2},door={"switch.wav",.65,.25},bass={"impact_generic.mp3",.5,.5}} do
+ for name,spec in {step={"action_footsteps_plastic.mp3",.88,.12},bell={"electronicpingshort.wav",1.7,.2},door={"switch.wav",.65,.25},bass={"impact_generic.mp3",.5,.5}} do
   if not sources[name] then local s=Instance.new("Sound"); s.Name=name; s.SoundId="rbxasset://sounds/"..spec[1]; s.PlaybackSpeed=spec[2]; s.Volume=spec[3]; s.Parent=folder; sources[name]=s end
  end
  return {
